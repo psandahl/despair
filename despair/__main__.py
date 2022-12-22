@@ -2,9 +2,6 @@ import argparse
 import logging
 import sys
 
-import cv2 as cv
-import matplotlib.pyplot as plt
-
 logger = None
 handler = None
 
@@ -34,65 +31,17 @@ def main() -> None:
     Entry point for application.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--log',
-                        help='set the effective log level (DEBUG, INFO, WARNING or ERROR)')
-    parser.add_argument('-l', '--left',
-                        help='path to the left image')
-    parser.add_argument('-r', '--right',
-                        help='path to the right image')
-    parser.add_argument('-g', '--ground-truth',
-                        help='path to ground truth image')
+    parser.add_argument('-l', '--log', type=str, default='warning',
+                        choices=['debug', 'info', 'warning', 'error'],
+                        help='set the effective log level (debug, info, warning or error)')
+
     args = parser.parse_args()
 
-    # Check if the effective log level shall be altered.
-    if not args.log is None:
-        log_level = args.log.upper()
-        if log_level in ['DEBUG', 'INFO', 'WARNING', 'ERROR']:
-            num_log_level = getattr(logging, log_level)
-            handler.setLevel(num_log_level)
-        else:
-            parser.print_help()
-            sys.exit(1)
+    # Adjust the effective log level.
+    log_level = args.log.upper()
+    handler.setLevel(getattr(logging, log_level))
 
-    left = None
-    right = None
-    ground_truth = None
-
-    if not args.left is None:
-        left = cv.imread(args.left, cv.IMREAD_GRAYSCALE)
-        if left is None:
-            logger.error('Failed to read left image')
-            sys.exit(1)
-
-    if not args.right is None:
-        right = cv.imread(args.right, cv.IMREAD_GRAYSCALE)
-        if right is None:
-            logger.error('Failed to read right image')
-            sys.exit(1)
-
-    if not args.ground_truth is None:
-        ground_truth = cv.imread(
-            args.ground_truth, cv.IMREAD_GRAYSCALE | cv.IMREAD_UNCHANGED)
-        if ground_truth is None:
-            logger.error('Failed to read ground truth image')
-            sys.exit(1)
-
-    if left is None or right is None:
-        parser.print_help()
-        sys.exit(1)
-
-    plt.subplot(211)
-    plt.title('Left image')
-    plt.imshow(left, cmap='gray', vmin=0, vmax=255)
-
-    plt.subplot(212)
-    plt.title('Right image')
-    plt.imshow(right, cmap='gray', vmin=0, vmax=255)
-
-    plt.show()
-
-    # Successful exit.
-    sys.exit(0)
+    print(log_level)
 
 
 if __name__ == '__main__':
