@@ -2,6 +2,8 @@ import argparse
 import logging
 import sys
 
+import despair.filter_plot as fp
+
 logger = None
 handler = None
 
@@ -34,6 +36,8 @@ def main() -> None:
     parser.add_argument('-l', '--log', type=str, default='warning',
                         choices=['debug', 'info', 'warning', 'error'],
                         help='set the effective log level (debug, info, warning or error)')
+    parser.add_argument('-p', '--plot', type=int,
+                        help='plot the available filters using the given radius')
 
     args = parser.parse_args()
 
@@ -41,7 +45,9 @@ def main() -> None:
     log_level = args.log.upper()
     handler.setLevel(getattr(logging, log_level))
 
-    print(log_level)
+    # Plot filters.
+    if args.plot and args.plot > 0:
+        fp.plot_with_radius(args.plot)
 
 
 if __name__ == '__main__':
