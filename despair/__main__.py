@@ -38,6 +38,8 @@ def main() -> None:
                         help='set the effective log level (debug, info, warning or error)')
     parser.add_argument('-p', '--plot', type=int,
                         help='plot the available filters using the given radius')
+    parser.add_argument('-r', '--response', type=int,
+                        help='plot the filter responses using the given radius')
 
     args = parser.parse_args()
 
@@ -45,9 +47,13 @@ def main() -> None:
     log_level = args.log.upper()
     handler.setLevel(getattr(logging, log_level))
 
-    # Plot filters.
+    # Check arguments.
     if args.plot and args.plot > 0:
-        fp.plot_with_radius(args.plot)
+        fp.filters_with_radius(args.plot)
+    elif args.response and args.response > 0:
+        fp.responses_with_radius(args.response)
+    else:
+        parser.print_usage()
 
 
 if __name__ == '__main__':

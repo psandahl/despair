@@ -1,5 +1,5 @@
-import cmath
 import numpy as np
+import scipy.signal as signal
 
 """
 Filters are taken from:
@@ -34,6 +34,8 @@ def nonring(r: float) -> np.ndarray:
     Returns:
         The filter coefficients, in a complex numpy array.
     """
+    assert r > 0
+
     r2 = r * 2.0
 
     x = np.arange(-r, r + 1, dtype=np.float64)
@@ -53,6 +55,26 @@ def wft(r: float) -> np.ndarray:
     Returns:
         The filter coefficients, in a complex numpy array.
     """
+    assert r > 0
+
     x = np.arange(-r, r + 1, dtype=np.float64)
 
     return np.exp(-1j * np.pi * (x / r))
+
+
+def convolve(filter: np.ndarray, data: np.ndarray) -> np.ndarray:
+    """
+    Perform convolution between the complex filter and the data.
+
+    Parameters:
+        filter: Complex filter.
+        data: Real data.
+
+    Returns:
+        The complex filter response.
+    """
+    assert filter.dtype == np.complex128
+    assert data.dtype == np.float64
+    assert len(data) >= len(filter)
+
+    return signal.convolve(data, filter, mode='same')
