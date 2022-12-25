@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.ndimage as ndimage
 
 import despair.filter as filter
 
 
-def filters_with_radius(r: float) -> None:
+def filters(r: float) -> None:
     """
     Plot the filters using the given radius.
 
@@ -30,11 +31,13 @@ def filters_with_radius(r: float) -> None:
         ax1 = fig.add_subplot(num_filters, 3, idx)
         ax1.plot(x, filt.real, color='#0000ff',
                  linewidth=2)
+        ax1.grid()
         ax1.set_title(f'{label} re/even part')
 
         ax2 = fig.add_subplot(num_filters, 3, idx + 1)
         ax2.plot(x, filt.imag, color='#00ff00',
                  linewidth=2)
+        ax2.grid()
         ax2.set_title(f'{label} im/odd part')
 
         ax3 = fig.add_subplot(num_filters, 3, idx + 2)
@@ -42,6 +45,7 @@ def filters_with_radius(r: float) -> None:
                  linewidth=2)
         ax3.plot(x, filt.imag, color='#00ff00',
                  linewidth=2)
+        ax3.grid()
         ax3.set_title(f'{label} complex')
 
         idx += 3
@@ -51,7 +55,7 @@ def filters_with_radius(r: float) -> None:
     plt.show()
 
 
-def responses_with_radius(r: float) -> None:
+def responses(r: float) -> None:
     """
     Plot the filter responses using the given radius.
 
@@ -60,41 +64,60 @@ def responses_with_radius(r: float) -> None:
     """
     assert r > 0
 
-    size = r * 3
-    x = np.arange(size, dtype=np.float64)
-
-    features = [
-        ("line", make_line),
-        ("up edge", make_up_edge),
-        ("down edge", make_down_edge)
+    filters = [
+        ("Nonring", filter.nonring),
+        ("Windowed FT", filter.wft)
     ]
-    num_features = len(features)
 
-    # Assume these two filters at the moment.
-    nonring = filter.nonring(r)
-    wft = filter.wft(r)
+    # Generate the feature image, and from that the feature signal.
+    image = feature_image()
+    signal = image[0, :]
 
-    fig = plt.figure(figsize=(8, num_features * 2))
+    x = np.arange(len(signal), dtype=np.float64)
 
-    idx = 1
-    for label, func in features:
-        feature = func(size)
+    fig = plt.figure(figsize=(8, 3 + len(filters) * 4))
 
-        ax1 = fig.add_subplot(num_features, 3, idx)
-        ax1.plot(x, feature, color='#ffff00')
-        ax1.set_title(f'{label}')
+    fig_rows = 2 + len(filters) * 3
+    img = fig.add_subplot(fig_rows, 1, 1)
 
-        resp_nonring = filter.convolve(nonring, feature)
-        ax2 = fig.add_subplot(num_features, 3, idx + 1)
-        ax2.plot(x, resp_nonring.real, color='#0000ff')
-        ax2.plot(x, resp_nonring.imag, color='#00ff00')
-        ax2.set_title('Response nonring filter')
+    # Visualize the feature image.
+    img.imshow(image[:10, :], vmin=0.0, vmax=1.0, cmap='gray')
+    img.set_title('Feature Image')
 
-        resp_wft = filter.convolve(wft, feature)
-        ax3 = fig.add_subplot(num_features, 3, idx + 2)
-        ax3.plot(x, resp_wft.real, color='#0000ff')
-        ax3.plot(x, resp_wft.imag, color='#00ff00')
-        ax3.set_title('Response WFT filter')
+    # Visualize the feature signal.
+    sig = fig.add_subplot(fig_rows, 1, 2)
+    sig.grid()
+    sig.plot(x, signal, color='#000000')
+    sig.set_title('Feature Signal')
+    sig.set_xlim(left=0.0, right=len(signal) - 1)
+
+    # For each filter, for the given, radius display its response.
+    idx = 3
+    for label, func in filters:
+        filt = func(r)
+        resp = filter.convolve(filt, signal)
+
+        # The raw, complex, response.
+        ax1 = fig.add_subplot(fig_rows, 1, idx)
+        ax1.plot(x, resp.real, color='#0000ff')
+        ax1.plot(x, resp.imag, color='#00ff00')
+        ax1.grid()
+        ax1.set_title(f'{label}({r}): complex response')
+        ax1.set_xlim(left=0.0, right=len(signal) - 1)
+
+        # The magnitude of the response.
+        ax2 = fig.add_subplot(fig_rows, 1, idx + 1)
+        ax2.plot(x, np.abs(resp), color='#ff0000')
+        ax2.grid()
+        ax2.set_title(f'{label}({r}): magnitude')
+        ax2.set_xlim(left=0.0, right=len(signal) - 1)
+
+        # The phase of the response.
+        ax3 = fig.add_subplot(fig_rows, 1, idx + 2)
+        ax3.plot(x, np.angle(resp), color='#ff00ff')
+        ax3.grid()
+        ax3.set_title(f'{label}({r}): phase angle')
+        ax3.set_xlim(left=0.0, right=len(signal) - 1)
 
         idx += 3
 
@@ -102,38 +125,15 @@ def responses_with_radius(r: float) -> None:
     plt.show()
 
 
-def make_line(size: float) -> np.ndarray:
-    line = np.zeros(size, dtype=np.float64)
+def feature_image() -> np.ndarray:
+    # Create ideal image with sharp lines and edges.
+    ideal = np.zeros((160, 160), dtype=np.float64)
 
-    mid = size // 2
-    line[mid - 2] = 0.25
-    line[mid - 1] = 0.75
-    line[mid] = 0.9
-    line[mid + 1] = 0.75
-    line[mid + 2] = 0.25
+    ideal[:, 19:22] = 1.0
+    ideal[:, 60:140] = 1.0
+    ideal[:, 99:102] = 0.0
 
-    return line
+    # Smooth with a gaussian filter.
+    image = ndimage.gaussian_filter(ideal, 1.0)
 
-
-def make_up_edge(size: float) -> np.ndarray:
-    edge = np.zeros(size, dtype=np.float64)
-
-    mid = size // 2
-
-    edge[:mid] = 0.25
-    edge[mid - 1] = 0.5
-    edge[mid:] = 0.75
-
-    return edge
-
-
-def make_down_edge(size: float) -> np.ndarray:
-    edge = np.zeros(size, dtype=np.float64)
-
-    mid = size // 2
-
-    edge[:mid] = 0.75
-    edge[mid - 1] = 0.5
-    edge[mid:] = 0.25
-
-    return edge
+    return image
