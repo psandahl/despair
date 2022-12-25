@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 
-import despair.filter_plot as fp
+import despair.plot as plot
 
 logger = None
 handler = None
@@ -49,9 +49,9 @@ def main() -> None:
 
     # Check arguments.
     if args.plot and args.plot > 0:
-        fp.filters_with_radius(args.plot)
+        plot.filters_with_radius(args.plot)
     elif args.response and args.response > 0:
-        fp.responses_with_radius(args.response)
+        plot.responses_with_radius(args.response)
     else:
         parser.print_usage()
 
