@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.ndimage as ndimage
 
 import despair.filter as filter
 import despair.util as util
