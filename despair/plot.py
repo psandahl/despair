@@ -3,6 +3,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 
 import despair.filter as filter
+import despair.util as util
 
 
 def filters(r: float) -> None:
@@ -69,8 +70,8 @@ def responses(r: float) -> None:
         ("Windowed FT", filter.wft)
     ]
 
-    # Generate the feature image, and from that the feature signal.
-    image = feature_image()
+    # Generate the feature image, and from that extract the feature signal.
+    image = util.feature_image(blur=True)
     signal = image[0, :]
 
     x = np.arange(len(signal), dtype=np.float64)
@@ -95,7 +96,7 @@ def responses(r: float) -> None:
     idx = 3
     for label, func in filters:
         filt = func(r)
-        resp = filter.convolve(filt, signal)
+        resp = filter.convolve(signal, filt)
 
         # The raw, complex, response.
         ax1 = fig.add_subplot(fig_rows, 1, idx)
@@ -123,17 +124,3 @@ def responses(r: float) -> None:
 
     fig.tight_layout()
     plt.show()
-
-
-def feature_image() -> np.ndarray:
-    # Create ideal image with sharp lines and edges.
-    ideal = np.zeros((160, 160), dtype=np.float64)
-
-    ideal[:, 19:22] = 1.0
-    ideal[:, 60:140] = 1.0
-    ideal[:, 99:102] = 0.0
-
-    # Smooth with a gaussian filter.
-    image = ndimage.gaussian_filter(ideal, 1.0)
-
-    return image

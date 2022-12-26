@@ -62,13 +62,13 @@ def wft(r: float) -> np.ndarray:
     return np.exp(-1j * np.pi * (x / r))
 
 
-def convolve(filter: np.ndarray, data: np.ndarray) -> np.ndarray:
+def convolve(data: np.ndarray, filter: np.ndarray) -> np.ndarray:
     """
     Perform convolution between the complex filter and the data.
 
     Parameters:
-        filter: Complex filter.
-        data: Real data.
+    data: Real data.
+        filter: Complex filter.        
 
     Returns:
         The complex filter response.
