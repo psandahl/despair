@@ -1,5 +1,4 @@
 import despair.filter as filter
-import despair.util as util
 
 import numpy as np
 import unittest
@@ -10,7 +9,10 @@ class FilterTest(unittest.TestCase):
         """
         Setup all stuff before each test function.
         """
-        self.signal = util.feature_image()[0, :]
+        self.signal = np.zeros(160, dtype=np.float64)
+        self.signal[19:22] = 1.0
+        self.signal[60:141] = 1.0
+        self.signal[99:102] = 0.0
 
         self.nonring_filters = list()
         self.wft_filters = list()
@@ -38,5 +40,41 @@ class FilterTest(unittest.TestCase):
 
             self.assertEqual(nonring.dtype, np.complex128)
             self.assertEqual(wft.dtype, np.complex128)
+
+            r += 1
+
+    def test_nonring_line_response(self):
+        """
+        Test nonring responses for lines.
+        """
+        self.__line_response(self.nonring_filters, 'nonring')
+
+    def test_wft_line_response(self):
+        """
+        Test WFT responses for lines.
+        """
+        self.__line_response(self.wft_filters, 'wft')
+
+    def __line_response(self, filters: np.ndarray, label: str):
+        r = 3
+        for filt in filters:
+            response = filter.convolve(self.signal, filt)
+            magnitude = np.abs(response)
+            phase = np.angle(response)
+            mean = np.mean(magnitude)
+
+            self.assertGreater(mean, 0.0, msg=f'Filter={label}')
+
+            for index, goal in [(20, 0.0), (100, 3.14159)]:
+                mag = magnitude[index]
+                ph = phase[index]
+
+                # Magnitude shall be greater than mean. Todo: Find peaks.
+                self.assertGreater(
+                    mag, mean, msg=f'Filter={label} radius={r}')
+
+                # Phase shall be equal to the goal.
+                self.assertAlmostEqual(
+                    goal, abs(ph), places=5, msg=f'Filter={label} radius={r}')
 
             r += 1
