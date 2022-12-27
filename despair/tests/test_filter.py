@@ -16,12 +16,10 @@ class FilterTest(unittest.TestCase):
         self.signal[60:141] = 1.0
         self.signal[99:102] = 0.0
 
-        self.nonring_filters = list()
-        self.wft_filters = list()
+        self.filters = list()
 
         for r in range(3, 10):
-            self.nonring_filters.append(filter.nonring(r))
-            self.wft_filters.append(filter.wft(r))
+            self.filters.append(filter.coeff(r))
 
         return super().setUp()
 
@@ -29,87 +27,65 @@ class FilterTest(unittest.TestCase):
         """
         Test the filter arrays - and that filters seem constructed ok.
         """
-        self.assertEqual(len(self.nonring_filters), 7)
-        self.assertEqual(len(self.nonring_filters), len(self.wft_filters))
+        self.assertEqual(len(self.filters), 7)
 
         r = 3
-        for nonring, wft in zip(self.nonring_filters, self.wft_filters):
-            self.assertEqual(len(nonring), 2 * r + 1)
-            self.assertEqual(len(nonring), len(wft))
-
-            self.assertIsInstance(nonring, np.ndarray)
-            self.assertIsInstance(wft, np.ndarray)
-
-            self.assertEqual(nonring.dtype, np.complex128)
-            self.assertEqual(wft.dtype, np.complex128)
+        for coeff in self.filters:
+            self.assertEqual(len(coeff), 2 * r + 1)
+            self.assertIsInstance(coeff, np.ndarray)
+            self.assertEqual(coeff.dtype, np.complex128)
 
             r += 1
 
-    def test_nonring_line_response(self):
+    def test_line_response(self):
         """
-        Test line responses for nonring.
+        Test filter response for lines.
         """
-        self.__line_response(self.nonring_filters, 'nonring')
-
-    def test_nonring_edge_response(self):
-        """
-        Test edge responses for nonring.
-        """
-        self.__edge_response(self.nonring_filters, 'nonring')
-
-    def test_wft_line_response(self):
-        """
-        Test line responses for WFT.
-        """
-        self.__line_response(self.wft_filters, 'wft')
-
-    def __line_response(self, filters: np.ndarray, label: str):
         r = 3
-        for filt in filters:
-            response = filter.convolve(self.signal, filt)
+        for coeff in self.filters:
+            response = filter.convolve(self.signal, coeff)
             magnitude = np.abs(response)
             phase = np.angle(response)
             mean = np.mean(magnitude)
 
-            self.assertGreater(mean, 0.0, msg=f'Filter={label}')
+            self.assertGreater(mean, 0.0)
 
             for index, goal in [(20, 0.0), (100, 3.14159)]:
                 mag = magnitude[index]
                 ph = phase[index]
 
                 # Magnitude shall be greater than mean. Todo: Find peaks.
-                self.assertGreater(
-                    mag, mean, msg=f'Filter={label} radius={r}')
+                self.assertGreater(mag, mean)
 
                 # Phase shall be equal to the goal.
-                self.assertAlmostEqual(
-                    goal, abs(ph), places=5, msg=f'Filter={label} radius={r}')
+                self.assertAlmostEqual(goal, abs(ph), places=5)
 
             r += 1
 
-    def __edge_response(self, filters: np.ndarray, label: str):
+    def test_edge_response(self):
+        """
+        Test filter response for edges.
+        """
         r = 3
-        for filt in filters:
-            response = filter.convolve(self.signal, filt)
+        for coeff in self.filters:
+            response = filter.convolve(self.signal, coeff)
 
-            # For edges in the test signal the exact response lies in between
-            # the pixels, and has to be interpolated.
             magnitude = np.abs(response)
             phase = np.angle(response)
             mean = np.mean(magnitude)
 
-            self.assertGreater(mean, 0.0, msg=f'Filter={label}')
+            self.assertGreater(mean, 0.0)
 
             for index0, index1, goal in [(59, 60, math.pi / 2), (140, 141, -math.pi / 2)]:
+                # For edges in the test signal the exact response lies in between
+                # the pixels, and has to be interpolated.
                 mag = util.mix(magnitude[index0], magnitude[index1], 0.5)
                 ph = util.mix(phase[index0], phase[index1], 0.5)
 
                 # Magnitude shall be greater than mean. Todo: Find peaks.
-                self.assertGreater(
-                    mag, mean, msg=f'Filter={label} radius={r}')
+                self.assertGreater(mag, mean)
 
                 # Phase shall be equal to the goal.
-                self.assertAlmostEqual(
-                    goal, ph, places=2, msg=f'Filter={label} radius={r}')
+                self.assertAlmostEqual(goal, ph, places=2)
 
             r += 1

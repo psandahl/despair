@@ -36,10 +36,10 @@ def main() -> None:
     parser.add_argument('-l', '--log', type=str, default='warning',
                         choices=['debug', 'info', 'warning', 'error'],
                         help='set the effective log level (debug, info, warning or error)')
-    parser.add_argument('-f', '--plot-filters', type=int,
-                        help='plot the available filters using the given radius')
-    parser.add_argument('-r', '--plot-responses', type=int,
-                        help='plot the filter responses using the given radius')
+    parser.add_argument('-c', '--plot-coeff', type=int,
+                        help='plot the filter coeffients using the given radius')
+    parser.add_argument('-r', '--plot-response', type=int,
+                        help='plot the filter response using the given radius')
 
     args = parser.parse_args()
 
@@ -48,10 +48,10 @@ def main() -> None:
     handler.setLevel(getattr(logging, log_level))
 
     # Check arguments.
-    if args.plot_filters and args.plot_filters > 0:
-        plot.filters(args.plot_filters)
-    elif args.plot_responses and args.plot_responses > 0:
-        plot.responses(args.plot_responses)
+    if args.plot_coeff and args.plot_coeff > 0:
+        plot.coeff(args.plot_coeff)
+    elif args.plot_response and args.plot_response > 0:
+        plot.response(args.plot_response)
     else:
         parser.print_usage()
 

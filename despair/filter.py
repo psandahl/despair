@@ -2,12 +2,12 @@ import numpy as np
 import scipy.signal as signal
 
 """
-Filters are inspired by:
+The filter is the non-ring filter from:
 
 Linkoping Studies in Science and Technology. Dissertations No. 379
 Focus of Attention and Gaze Control for Robot Vision.
 
-The filters respond to line and edge events like the following:
+The filtes respond to line and edge events like the following:
 
 Magnitude is significant greater than zero.
 
@@ -16,9 +16,9 @@ dark to light edge and -pi/2 for light to dark edge.
 """
 
 
-def nonring(r: float) -> np.ndarray:
+def coeff(r: float) -> np.ndarray:
     """
-    Compute a discrete, complex nonring filter with the given radius.
+    Compute a discrete, complex non-ring filter with the given radius.
 
     Parameters:
         r: Radius of the filter.
@@ -36,27 +36,10 @@ def nonring(r: float) -> np.ndarray:
     return __cos2(x_pi / r2) * np.exp(-1j * (x_pi / r + np.sin(x_pi / r)))
 
 
-def wft(r: float) -> np.ndarray:
+def convolve(data: np.ndarray, coeff: np.ndarray) -> np.ndarray:
     """
-    Compute a discrete, complex windowed fourier transform 
-    filter with the given radius.
-
-    Parameters:
-        r: Radius of the filter.
-
-    Returns:
-        The filter coefficients, in a complex numpy array.
-    """
-    assert r > 0
-
-    x = np.arange(-r, r + 1, dtype=np.float64)
-
-    return np.exp(-1j * np.pi * (x / r))
-
-
-def convolve(data: np.ndarray, filter: np.ndarray) -> np.ndarray:
-    """
-    Perform convolution between the complex filter and the data.
+    Perform convolution between the complex filter coefficients 
+    and the data.
 
     Parameters:
     data: Real data.
@@ -65,11 +48,11 @@ def convolve(data: np.ndarray, filter: np.ndarray) -> np.ndarray:
     Returns:
         The complex filter response.
     """
-    assert filter.dtype == np.complex128
+    assert coeff.dtype == np.complex128
     assert data.dtype == np.float64
-    assert len(data) >= len(filter)
+    assert len(data) >= len(coeff)
 
-    return signal.convolve(data, filter, mode='same')
+    return signal.convolve(data, coeff, mode='same')
 
 
 def __cos2(x: float) -> float:
