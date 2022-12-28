@@ -14,7 +14,7 @@ def setup_logging() -> None:
     as getLogger(__name__) to end up in logger tree.
     """
     global logger
-    logger = logging.getLogger('dapper')
+    logger = logging.getLogger('despair')
     logger.setLevel(logging.DEBUG)
 
     global handler
