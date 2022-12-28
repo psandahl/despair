@@ -1,5 +1,6 @@
 import argparse
 import logging
+import pathlib
 import sys
 
 import despair.plot as plot
@@ -36,15 +37,15 @@ def main() -> None:
     parser.add_argument('--log', type=str, default='warning',
                         choices=['debug', 'info', 'warning', 'error'],
                         help='set the effective log level (default: warning)')
-    parser.add_argument('--plot', type=str, choices=['coeff', 'response'],
+    parser.add_argument('--plot', type=str, choices=['coeff', 'response', 'shift'],
                         help='plot the given function')
-    parser.add_argument('--disparity', type=str, choices=['ground-truth'],
+    parser.add_argument('--disparity-mode', type=str, choices=['ground-truth'],
                         help='run disparity in the given mode')
-    parser.add_argument('--shift', type=str, choices=['global'],
+    parser.add_argument('--shift-mode', type=str, choices=['global'],
                         help='shift mode for ground truth disparity')
-    parser.add_argument('--shift-scale', type=int, default=1,
+    parser.add_argument('--shift-scale', type=float, default=1.0,
                         help='set the scale for the ground thruth shift (default: 1)')
-    parser.add_argument('--reference', type=argparse.FileType('r'),
+    parser.add_argument('--reference', type=pathlib.Path,
                         help='the reference image')
     parser.add_argument('--radius', type=int, choices=range(1, 10), default=7,
                         help='set the phase filter radius (default: 7)')
@@ -64,6 +65,14 @@ def main() -> None:
     elif args.plot == 'response':
         plot.response(args.radius)
         sys.exit(0)
+    elif args.plot == 'shift':
+        if not args.reference is None and not args.shift_mode is None:
+            result = plot.shift(
+                args.reference, args.shift_mode, args.shift_scale)
+            sys.exit(0 if result else 1)
+        else:
+            args.print_usage()
+            sys.exit(1)
 
     parser.print_usage()
     sys.exit(1)

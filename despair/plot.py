@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
+import logging
 import numpy as np
+import pathlib
 
 import despair.filter as filter
 import despair.util as util
+
+logger = logging.getLogger(__name__)
 
 
 def coeff(r: float) -> None:
@@ -101,3 +105,12 @@ def response(r: float) -> None:
     fig.suptitle(f'Filter response using radius={r}')
     fig.tight_layout()
     plt.show()
+
+
+def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
+    """
+    Plot a shifted query image using reference image, mode and scale.
+    """
+    logger.debug(f'shift: reference={reference}, mode={mode}, scale={scale}')
+
+    return True
