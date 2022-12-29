@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import logging
 import numpy as np
 import pathlib
+import scipy.ndimage as ndimage
 
 import despair.filter as filter
-import despair.util as util
+import despair.image as image
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def response(r: float) -> None:
     assert r > 0
 
     # Generate the feature image, and from that extract the feature signal.
-    image = util.feature_image(blur=True)
+    image = __feature_image(blur=True)
     signal = image[0, :]
 
     x = np.arange(len(signal), dtype=np.float64)
@@ -114,3 +115,29 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     logger.debug(f'shift: reference={reference}, mode={mode}, scale={scale}')
 
     return True
+
+
+def __feature_image(blur: bool = False) -> np.ndarray:
+    """
+    Create a 160x160 feature image with:
+    1. White line (at 20).
+    2. Black to white edge (at 60).
+    3. Black line (at 100).
+    4. White to black edge (at 140).
+
+    Parameters:
+        blur: Flag to request gaussian blur of image.
+
+    Returns:
+        The image.
+    """
+    img = image.black_grayscale((160, 160))
+
+    img[:, 19:22] = 1.0
+    img[:, 60:141] = 1.0
+    img[:, 99:102] = 0.0
+
+    if blur:
+        return ndimage.gaussian_filter(img, 1.0)
+    else:
+        return img
