@@ -28,7 +28,7 @@ class FilterTest(unittest.TestCase):
 
         return super().setUp()
 
-    def test_filter_arrays(self):
+    def test_filter_arrays(self) -> None:
         """
         Test the filter arrays - and that filters seem constructed ok.
         """
@@ -42,7 +42,7 @@ class FilterTest(unittest.TestCase):
 
             r += 1
 
-    def test_line_response(self):
+    def test_line_response(self) -> None:
         """
         Test filter response for lines.
         """
@@ -74,7 +74,7 @@ class FilterTest(unittest.TestCase):
 
             r += 1
 
-    def test_edge_response(self):
+    def test_edge_response(self) -> None:
         """
         Test filter response for edges.
         """

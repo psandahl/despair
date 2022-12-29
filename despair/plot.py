@@ -132,8 +132,14 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
 
     ax2 = fig.add_subplot(1, 3, 2)
     ax2.imshow(shift_img, vmin=np.min(shift_img),
-               vmax=np.max(shift_img), cmap='gray')
-    ax2.set_title(f'Reference image mode={mode}, scale={scale}')
+               vmax=np.max(shift_img), cmap='hot', interpolation='nearest')
+    ax2.set_title(f'Shift mode={mode}, scale={scale}')
+
+    query_img = image.horizontal_shift(ref_img, shift_img)
+
+    ax3 = fig.add_subplot(1, 3, 3)
+    ax3.imshow(query_img, vmin=0.0, vmax=1.0, cmap='gray')
+    ax3.set_title('Query image')
 
     fig.suptitle('Horizontal shift')
     fig.tight_layout()
