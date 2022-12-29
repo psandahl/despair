@@ -71,7 +71,7 @@ def main() -> None:
                 args.reference, args.shift_mode, args.shift_scale)
             sys.exit(0 if result else 1)
         else:
-            args.print_usage()
+            parser.print_usage()
             sys.exit(1)
 
     parser.print_usage()

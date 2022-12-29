@@ -19,6 +19,8 @@ def coeff(r: float) -> None:
     """
     assert r > 0
 
+    logger.debug(f'coeff: radius={r}')
+
     coeff = filter.coeff(r)
 
     x = np.arange(-r, r + 1, dtype=np.float64)
@@ -57,6 +59,8 @@ def response(r: float) -> None:
     """
     assert r > 0
 
+    logger.debug(f'response: radius={r}')
+
     # Generate the feature image, and from that extract the feature signal.
     image = __feature_image(blur=True)
     signal = image[0, :]
@@ -65,43 +69,42 @@ def response(r: float) -> None:
 
     fig = plt.figure(figsize=(8, 7))
 
-    img = fig.add_subplot(5, 1, 1)
-
     # Visualize the feature image.
-    img.imshow(image[:10, :], vmin=0.0, vmax=1.0, cmap='gray')
-    img.set_title('Feature Image')
+    ax1 = fig.add_subplot(5, 1, 1)
+    ax1.imshow(image[:10, :], vmin=0.0, vmax=1.0, cmap='gray')
+    ax1.set_title('Feature Image')
 
     # Visualize the feature signal.
-    sig = fig.add_subplot(5, 1, 2)
-    sig.grid()
-    sig.plot(x, signal, color='#000000')
-    sig.set_title('Feature Signal')
-    sig.set_xlim(left=0.0, right=len(signal) - 1)
+    ax2 = fig.add_subplot(5, 1, 2)
+    ax2.grid()
+    ax2.plot(x, signal, color='#000000')
+    ax2.set_title('Feature Signal')
+    ax2.set_xlim(left=0.0, right=len(signal) - 1)
 
     coeff = filter.coeff(r)
     resp = filter.convolve(signal, coeff)
 
     # The raw, complex, response.
-    ax1 = fig.add_subplot(5, 1, 3)
-    ax1.plot(x, resp.real, color='#0000ff')
-    ax1.plot(x, resp.imag, color='#00ff00')
-    ax1.grid()
-    ax1.set_title('complex response')
-    ax1.set_xlim(left=0.0, right=len(signal) - 1)
+    ax3 = fig.add_subplot(5, 1, 3)
+    ax3.plot(x, resp.real, color='#0000ff')
+    ax3.plot(x, resp.imag, color='#00ff00')
+    ax3.grid()
+    ax3.set_title('complex response')
+    ax3.set_xlim(left=0.0, right=len(signal) - 1)
 
     # The magnitude of the response.
-    ax2 = fig.add_subplot(5, 1, 4)
-    ax2.plot(x, np.abs(resp), color='#ff0000')
-    ax2.grid()
-    ax2.set_title('magnitude')
-    ax2.set_xlim(left=0.0, right=len(signal) - 1)
+    ax4 = fig.add_subplot(5, 1, 4)
+    ax4.plot(x, np.abs(resp), color='#ff0000')
+    ax4.grid()
+    ax4.set_title('magnitude')
+    ax4.set_xlim(left=0.0, right=len(signal) - 1)
 
     # The phase of the response.
-    ax3 = fig.add_subplot(5, 1, 5)
-    ax3.plot(x, np.angle(resp), color='#ff00ff')
-    ax3.grid()
-    ax3.set_title('phase angle')
-    ax3.set_xlim(left=0.0, right=len(signal) - 1)
+    ax5 = fig.add_subplot(5, 1, 5)
+    ax5.plot(x, np.angle(resp), color='#ff00ff')
+    ax5.grid()
+    ax5.set_title('phase angle')
+    ax5.set_xlim(left=0.0, right=len(signal) - 1)
 
     fig.suptitle(f'Filter response using radius={r}')
     fig.tight_layout()
@@ -113,6 +116,28 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     Plot a shifted query image using reference image, mode and scale.
     """
     logger.debug(f'shift: reference={reference}, mode={mode}, scale={scale}')
+
+    ref_img = image.read_grayscale(reference)
+    if ref_img is None:
+        return False
+
+    fig = plt.figure(figsize=(8, 4))
+
+    ax1 = fig.add_subplot(1, 3, 1)
+    ax1.imshow(ref_img, vmin=0.0, vmax=1.0, cmap='gray')
+    ax1.set_title('Reference image')
+
+    shift_img = image.black_grayscale(ref_img.shape)
+    shift_img[:, :] = scale
+
+    ax2 = fig.add_subplot(1, 3, 2)
+    ax2.imshow(shift_img, vmin=np.min(shift_img),
+               vmax=np.max(shift_img), cmap='gray')
+    ax2.set_title(f'Reference image mode={mode}, scale={scale}')
+
+    fig.suptitle('Horizontal shift')
+    fig.tight_layout()
+    plt.show()
 
     return True
 
