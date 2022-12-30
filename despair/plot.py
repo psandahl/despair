@@ -127,8 +127,7 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     ax1.imshow(ref_img, vmin=0.0, vmax=1.0, cmap='gray')
     ax1.set_title('Reference image')
 
-    shift_img = image.black_grayscale(ref_img.shape)
-    shift_img[:, :] = scale
+    shift_img = __global_shift_image(ref_img.shape, scale)
 
     ax2 = fig.add_subplot(1, 3, 2)
     ax2.imshow(shift_img, vmin=np.min(shift_img),
@@ -172,3 +171,20 @@ def __feature_image(blur: bool = False) -> np.ndarray:
         return ndimage.gaussian_filter(img, 1.0)
     else:
         return img
+
+
+def __global_shift_image(shape: tuple[int, int], scale: float) -> np.ndarray:
+    """
+    Create a global shift image.
+
+    Parameters:
+        shape: Shape of the image.
+        scale: Shift scale.
+
+    Returns:
+        The shift image.
+    """
+    img = image.black_grayscale(shape)
+    img[:, :] = scale
+
+    return img
