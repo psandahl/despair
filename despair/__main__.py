@@ -41,8 +41,8 @@ def main() -> None:
                         help='plot the given function')
     parser.add_argument('--disparity-mode', type=str, choices=['ground-truth'],
                         help='run disparity in the given mode')
-    parser.add_argument('--shift-mode', type=str, choices=['global'],
-                        help='shift mode for ground truth disparity')
+    parser.add_argument('--shift-mode', type=str, choices=['global', 'peak'],
+                        help='shift mode for disparity ground truth')
     parser.add_argument('--shift-scale', type=float, default=1.0,
                         help='set the scale for the ground thruth shift (default: 1)')
     parser.add_argument('--reference', type=pathlib.Path,

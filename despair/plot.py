@@ -121,17 +121,24 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     if ref_img is None:
         return False
 
+    shift_img = None
+    if mode == 'global':
+        shift_img = __global_shift_image(ref_img.shape, scale)
+    elif mode == 'peak':
+        shift_img = __peak_shift_image(ref_img.shape, scale)
+    else:
+        logger.error(f"Unknown mode='{mode}'")
+        return False
+
     fig = plt.figure(figsize=(8, 4))
 
     ax1 = fig.add_subplot(1, 3, 1)
     ax1.imshow(ref_img, vmin=0.0, vmax=1.0, cmap='gray')
     ax1.set_title('Reference image')
 
-    shift_img = __global_shift_image(ref_img.shape, scale)
-
     ax2 = fig.add_subplot(1, 3, 2)
     ax2.imshow(shift_img, vmin=np.min(shift_img),
-               vmax=np.max(shift_img), cmap='hot', interpolation='nearest')
+               vmax=np.max(shift_img), cmap='gray', interpolation='nearest')
     ax2.set_title(f'Shift mode={mode}, scale={scale}')
 
     query_img = image.horizontal_shift(ref_img, shift_img)
@@ -188,3 +195,26 @@ def __global_shift_image(shape: tuple[int, int], scale: float) -> np.ndarray:
     img[:, :] = scale
 
     return img
+
+
+def __peak_shift_image(shape: tuple[int, int], scale: float) -> np.ndarray:
+    """
+    Create shift image with a peak in the middle.
+
+    Parameters:
+        shape: Shape of the image.
+        scale: Shift scale.
+
+    Returns:
+        The shift image.
+    """
+    rows, cols = shape
+    min_radius = (min(rows, cols) - 1) / 2
+    center_x, center_y = (cols - 1) / 2, (rows - 1) / 2
+
+    ys, xs = np.ogrid[:rows, :cols]
+    img = np.cos(((ys - center_y) ** 2 + (xs - center_x) ** 2) /
+                 min_radius ** 2)
+    img = np.where(img > 0, img, 0.0)
+
+    return img * scale
