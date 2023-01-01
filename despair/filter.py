@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.signal as signal
 
+import despair.util as util
+
 """
 The filter is the non-ring filter from:
 
@@ -35,7 +37,7 @@ def coeff(r: float) -> np.ndarray:
     x = np.arange(-r, r + 1, dtype=np.float64)
     x_pi = x * np.pi
 
-    return __cos2(x_pi / r2) * np.exp(-1j * (x_pi / r + np.sin(x_pi / r)))
+    return util.cos2(x_pi / r2) * np.exp(-1j * (x_pi / r + np.sin(x_pi / r)))
 
 
 def convolve(data: np.ndarray, coeff: np.ndarray) -> np.ndarray:
@@ -61,16 +63,3 @@ def convolve(data: np.ndarray, coeff: np.ndarray) -> np.ndarray:
         return response / max_magnitude
     else:
         return response
-
-
-def __cos2(x: float) -> float:
-    """
-    Compute cos2.
-
-    Parameters:
-        x: Value to cos.
-
-    Returns:
-        The cos2 value.
-    """
-    return np.cos(x) ** 2.0

@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 import despair.filter as filter
+import despair.util as util
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ def line(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
     resp_qry = filter.convolve(query, coeff)
 
     # Compute the phase difference between the responses.
+    # Note: phase_diff is 'd' in report paper.
     phase_diff = resp_ref * np.conj(resp_qry)
 
     # And from the phase difference extract magnitudes and phase angles.
@@ -93,7 +95,7 @@ def line(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
 
     # TODO: As for now - magnitudes are used as simple confidences, but must
     # be changed.
-    confidence[:] = magnitude[:]
+    confidence[:] = __confidence(resp_ref, resp_qry, magnitude)
 
 
 def __local_frequency(resp_ref: np.ndarray, resp_qry: np.ndarray) -> np.ndarray:
@@ -115,3 +117,14 @@ def __local_frequency(resp_ref: np.ndarray, resp_qry: np.ndarray) -> np.ndarray:
         idx += 1
 
     return np.where(np.abs(local_frequency) < __eps, __eps, local_frequency)
+
+
+def __confidence(resp_ref: np.ndarray, resp_qry: np.ndarray, magnitude: np.ndarray) -> np.ndarray:
+    m2 = np.abs(resp_ref * resp_qry)
+    alpha = np.abs(resp_ref) * np.abs(resp_qry)
+    gamma = 4.0  # Heuristic value.
+
+    c1 = np.sqrt(m2) * np.power((2 * alpha) / (1.0 + alpha ** 2), gamma)
+    c2 = c1 * util.cos2(magnitude / 2.0)
+
+    return c2
