@@ -4,6 +4,7 @@ import numpy as np
 import pathlib
 import scipy.ndimage as ndimage
 
+import despair.disparity as disparity
 import despair.filter as filter
 import despair.image as image
 
@@ -152,6 +153,68 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     plt.show()
 
     return True
+
+
+def disparity_feature_image(r: float) -> None:
+    """
+    Plot disparity values for the feature image.
+    """
+    logger.debug(f'disparity_feature_image: radius={r}')
+
+    # Get the filter coefficients for the given radius.
+    coeff = filter.coeff(r)
+
+    # Generate the feature image, and from that extract the feature signal/reference image.
+    img = __feature_image(blur=True)
+    reference_img = img[0, :]
+
+    x = np.arange(len(reference_img), dtype=np.float64)
+
+    fig = plt.figure(figsize=(8, 7))
+
+    # Visualize the reference image as a signal.
+    fig_rows = 5
+
+    ax1 = fig.add_subplot(fig_rows, 1, 1)
+    ax1.grid()
+    ax1.plot(x, reference_img, color='#000000')
+    ax1.set_title('Reference signal')
+    ax1.set_xlim(left=0.0, right=len(reference_img) - 1)
+
+    idx = 2
+    for disp in [0.0]:
+        shift_img = __global_shift_image(img.shape, disp)
+        query_img = image.horizontal_shift(img, shift_img)[0, :]
+
+        ax_qry = fig.add_subplot(fig_rows, 1, idx)
+        ax_qry.grid()
+        ax_qry.plot(x, query_img, color='#000000')
+        ax_qry.set_title(f'Query signal disparity={disp}')
+        ax_qry.set_xlim(left=0.0, right=len(query_img) - 1)
+
+        disparity_img = np.zeros_like(reference_img)
+        confidence_img = np.zeros_like(reference_img)
+
+        disparity.line(coeff, reference_img, query_img,
+                       disparity_img, confidence_img)
+
+        ax_disp = fig.add_subplot(fig_rows, 1, idx + 1)
+        ax_disp.grid()
+        ax_disp.plot(x, disparity_img, color='#0000ff')
+        ax_disp.set_title('Computed disparity')
+        ax_disp.set_xlim(left=0.0, right=len(disparity_img) - 1)
+
+        ax_conf = fig.add_subplot(fig_rows, 1, idx + 2)
+        ax_conf.grid()
+        ax_conf.plot(x, confidence_img, color='#00ff00')
+        ax_conf.set_title('Computed confidence')
+        ax_conf.set_xlim(left=0.0, right=len(confidence_img) - 1)
+
+        idx += 3
+
+    fig.suptitle('Disparity plots for radius={r}')
+    fig.tight_layout()
+    plt.show()
 
 
 def __feature_image(blur: bool = False) -> np.ndarray:

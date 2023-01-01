@@ -37,9 +37,9 @@ def main() -> None:
     parser.add_argument('--log', type=str, default='warning',
                         choices=['debug', 'info', 'warning', 'error'],
                         help='set the effective log level (default: warning)')
-    parser.add_argument('--plot', type=str, choices=['coeff', 'response', 'shift'],
+    parser.add_argument('--plot', type=str, choices=['coeff', 'response', 'shift', 'disparity'],
                         help='plot the given function')
-    parser.add_argument('--disparity-mode', type=str, choices=['ground-truth'],
+    parser.add_argument('--disparity-mode', type=str, choices=['feature-image'],
                         help='run disparity in the given mode')
     parser.add_argument('--shift-mode', type=str, choices=['global', 'peak'],
                         help='shift mode for disparity ground truth')
@@ -70,6 +70,13 @@ def main() -> None:
             result = plot.shift(
                 args.reference, args.shift_mode, args.shift_scale)
             sys.exit(0 if result else 1)
+        else:
+            parser.print_usage()
+            sys.exit(1)
+    elif args.plot == 'disparity':
+        if args.disparity_mode == 'feature-image':
+            plot.disparity_feature_image(args.radius)
+            sys.exit(0)
         else:
             parser.print_usage()
             sys.exit(1)
