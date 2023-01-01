@@ -90,12 +90,12 @@ def line(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
     # Compute the local frequency.
     local_frequency = __local_frequency(resp_ref, resp_qry)
 
+    # Compute the confidence.
+    confidence[:] = __confidence(
+        resp_ref, resp_qry, magnitude, local_frequency)
+
     # Compute the disparity using the phase angles and the local frequencies.
     disparity[:] = angle / local_frequency
-
-    # TODO: As for now - magnitudes are used as simple confidences, but must
-    # be changed.
-    confidence[:] = __confidence(resp_ref, resp_qry, magnitude)
 
 
 def __local_frequency(resp_ref: np.ndarray, resp_qry: np.ndarray) -> np.ndarray:
@@ -119,12 +119,14 @@ def __local_frequency(resp_ref: np.ndarray, resp_qry: np.ndarray) -> np.ndarray:
     return np.where(np.abs(local_frequency) < __eps, __eps, local_frequency)
 
 
-def __confidence(resp_ref: np.ndarray, resp_qry: np.ndarray, magnitude: np.ndarray) -> np.ndarray:
+def __confidence(resp_ref: np.ndarray, resp_qry: np.ndarray,
+                 magnitude: np.ndarray, local_frequency: np.ndarray) -> np.ndarray:
     m2 = np.abs(resp_ref * resp_qry)
     alpha = np.abs(resp_ref) * np.abs(resp_qry)
     gamma = 4.0  # Heuristic value.
 
     c1 = np.sqrt(m2) * np.power((2 * alpha) / (1.0 + alpha ** 2), gamma)
     c2 = c1 * util.cos2(magnitude / 2.0)
+    c3 = np.where(local_frequency > 0.0, c2, 0.0)
 
-    return c2
+    return c3
