@@ -15,6 +15,8 @@ Phase is zero for light line, is pi (or -pi) for dark line, pi/2 for
 dark to light edge and -pi/2 for light to dark edge.
 """
 
+__eps = np.finfo(np.float64).eps
+
 
 def coeff(r: float) -> np.ndarray:
     """
@@ -46,13 +48,19 @@ def convolve(data: np.ndarray, coeff: np.ndarray) -> np.ndarray:
         filter: Complex filter.        
 
     Returns:
-        The complex filter response.
+        The complex filter response, normalized by the max magnitude.
     """
     assert coeff.dtype == np.complex128
     assert data.dtype == np.float64
     assert len(data) >= len(coeff)
 
-    return signal.convolve(data, coeff, mode='same')
+    response = signal.convolve(data, coeff, mode='same')
+    max_magnitude = np.max(np.abs(response))
+
+    if max_magnitude > __eps:
+        return response / max_magnitude
+    else:
+        return response
 
 
 def __cos2(x: float) -> float:
