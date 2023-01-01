@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 
@@ -27,3 +28,25 @@ def cos2(x: float) -> float:
         The cos2 value.
     """
     return np.cos(x) ** 2.0
+
+
+def max_levels(shape: tuple[int, int]) -> int:
+    """
+    Compute the maximum pyramid levels possible to create before
+    threshold is reached.
+
+    Parameters:
+        shape: Tuple (rows, cols).
+
+    Returns:
+        The max number of levels.
+    """
+    rows, cols = shape
+    min_size = min(rows, cols)
+
+    threshold = math.log2(32)
+    levels = math.floor(math.log2(min_size))
+    if levels > threshold:
+        return levels - threshold
+    else:
+        return 0
