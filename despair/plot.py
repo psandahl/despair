@@ -198,6 +198,9 @@ def disparity_feature_image(r: float) -> None:
         disparity.line(coeff, reference_img, query_img,
                        disparity_img, confidence_img)
 
+        # Hack to filter disparity using confidence. Just for plotting.
+        disparity_img = np.where(confidence_img > 0.1, disparity_img, 0.0)
+
         ax_disp = fig.add_subplot(fig_rows, 1, idx + 1)
         ax_disp.grid()
         ax_disp.plot(x, disparity_img, color='#0000ff')
@@ -212,7 +215,7 @@ def disparity_feature_image(r: float) -> None:
 
         idx += 3
 
-    fig.suptitle('Disparity plots for radius={r}')
+    fig.suptitle(f'Disparity plots for radius={r}')
     fig.tight_layout()
     plt.show()
 
