@@ -155,11 +155,11 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     return True
 
 
-def disparity_feature_image(r: float) -> None:
+def disparity_feature_image(r: float, scale: float) -> None:
     """
     Plot disparity values for the feature image.
     """
-    logger.debug(f'disparity_feature_image: radius={r}')
+    logger.debug(f'disparity_feature_image: radius={r} scale={scale}')
 
     # Get the filter coefficients for the given radius.
     coeff = filter.coeff(r)
@@ -173,49 +173,43 @@ def disparity_feature_image(r: float) -> None:
     fig = plt.figure(figsize=(8, 7))
 
     # Visualize the reference image as a signal.
-    fig_rows = 5
-
-    ax1 = fig.add_subplot(fig_rows, 1, 1)
+    ax1 = fig.add_subplot(4, 1, 1)
     ax1.grid()
     ax1.plot(x, reference_img, color='#000000')
     ax1.set_title('Reference signal')
     ax1.set_xlim(left=0.0, right=len(reference_img) - 1)
 
-    idx = 2
-    for disp in [0.0]:
-        shift_img = __global_shift_image(img.shape, disp)
-        query_img = image.horizontal_shift(img, shift_img)[0, :]
+    shift_img = __global_shift_image(img.shape, scale)
+    query_img = image.horizontal_shift(img, shift_img)[0, :]
 
-        ax_qry = fig.add_subplot(fig_rows, 1, idx)
-        ax_qry.grid()
-        ax_qry.plot(x, query_img, color='#000000')
-        ax_qry.set_title(f'Query signal disparity={disp}')
-        ax_qry.set_xlim(left=0.0, right=len(query_img) - 1)
+    ax_qry = fig.add_subplot(4, 1, 2)
+    ax_qry.grid()
+    ax_qry.plot(x, query_img, color='#000000')
+    ax_qry.set_title(f'Query signal disparity={scale}')
+    ax_qry.set_xlim(left=0.0, right=len(query_img) - 1)
 
-        disparity_img = np.zeros_like(reference_img)
-        confidence_img = np.zeros_like(reference_img)
+    disparity_img = np.zeros_like(reference_img)
+    confidence_img = np.zeros_like(reference_img)
 
-        disparity.line(coeff, reference_img, query_img,
-                       disparity_img, confidence_img)
+    disparity.line(coeff, reference_img, query_img,
+                   disparity_img, confidence_img)
 
-        # Hack to filter disparity using confidence. Just for plotting.
-        disparity_img = np.where(confidence_img > 0.1, disparity_img, 0.0)
+    # Hack to filter disparity using confidence. Just for plotting.
+    disparity_img = np.where(confidence_img > 0.1, disparity_img, 0.0)
 
-        ax_disp = fig.add_subplot(fig_rows, 1, idx + 1)
-        ax_disp.grid()
-        ax_disp.plot(x, disparity_img, color='#0000ff')
-        ax_disp.set_title('Computed disparity')
-        ax_disp.set_xlim(left=0.0, right=len(disparity_img) - 1)
+    ax_disp = fig.add_subplot(4, 1, 3)
+    ax_disp.grid()
+    ax_disp.plot(x, disparity_img, color='#0000ff')
+    ax_disp.set_title('Computed disparity (filtered)')
+    ax_disp.set_xlim(left=0.0, right=len(disparity_img) - 1)
 
-        ax_conf = fig.add_subplot(fig_rows, 1, idx + 2)
-        ax_conf.grid()
-        ax_conf.plot(x, confidence_img, color='#00ff00')
-        ax_conf.set_title('Computed confidence')
-        ax_conf.set_xlim(left=0.0, right=len(confidence_img) - 1)
+    ax_conf = fig.add_subplot(4, 1, 4)
+    ax_conf.grid()
+    ax_conf.plot(x, confidence_img, color='#00ff00')
+    ax_conf.set_title('Computed confidence')
+    ax_conf.set_xlim(left=0.0, right=len(confidence_img) - 1)
 
-        idx += 3
-
-    fig.suptitle(f'Disparity plots for radius={r}')
+    fig.suptitle(f'Disparity plots for radius={r} shift scale={scale}')
     fig.tight_layout()
     plt.show()
 

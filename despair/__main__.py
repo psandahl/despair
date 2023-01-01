@@ -75,7 +75,7 @@ def main() -> None:
             sys.exit(1)
     elif args.plot == 'disparity':
         if args.disparity_mode == 'feature-image':
-            plot.disparity_feature_image(args.radius)
+            plot.disparity_feature_image(args.radius, args.shift_scale)
             sys.exit(0)
         else:
             parser.print_usage()
