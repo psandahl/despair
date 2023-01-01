@@ -44,6 +44,20 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int = 7, levels: i
 
 def line(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
          disparity: np.ndarray, confidence: np.ndarray) -> None:
+    """
+    Compute the disparity between the reference and the query image lines.
+    The disparity is described how the query image shall be shifted to meet
+    the reference image.
+
+    The confidence is between zero and one.
+
+    Parameters:
+        coeff: The filter coefficients.
+        reference: The reference image line.
+        query: The query image line.
+        disparity: The disparity image [output].
+        confidence: The confidence iamge [output].
+    """
     assert isinstance(coeff, np.ndarray)
     assert len(coeff.shape) == 1
     assert coeff.dtype == np.complex128
