@@ -39,7 +39,7 @@ def main() -> None:
                         help='set the effective log level (default: warning)')
     parser.add_argument('--plot', type=str, choices=['coeff', 'response', 'shift', 'disparity'],
                         help='plot the given function')
-    parser.add_argument('--disparity-mode', type=str, choices=['feature-image'],
+    parser.add_argument('--disparity-mode', type=str, choices=['feature-image', 'ground-truth'],
                         help='run disparity in the given mode')
     parser.add_argument('--shift-mode', type=str, choices=['global', 'peak'],
                         help='shift mode for disparity ground truth')
@@ -49,8 +49,8 @@ def main() -> None:
                         help='the reference image')
     parser.add_argument('--radius', type=int, choices=range(1, 10), default=7,
                         help='set the phase filter radius (default: 7)')
-    parser.add_argument('--scale-space', type=int, choices=range(0, 10), default=3,
-                        help='set the maximum scale space level (default: 3)')
+    parser.add_argument('--max-levels', type=int, choices=range(0, 8), default=3,
+                        help='set the maximum scale level (default: 3)')
 
     args = parser.parse_args()
 
@@ -77,6 +77,14 @@ def main() -> None:
         if args.disparity_mode == 'feature-image':
             plot.disparity_feature_image(args.radius, args.shift_scale)
             sys.exit(0)
+        elif args.disparity_mode == 'ground-truth':
+            if not args.reference is None and not args.shift_mode is None:
+                result = plot.disparity_ground_truth(
+                    args.reference, args.shift_mode, args.shift_scale, args.radius, args.max_levels)
+                sys.exit(0 if result else 1)
+            else:
+                parser.print_usage()
+                sys.exit(1)
         else:
             parser.print_usage()
             sys.exit(1)

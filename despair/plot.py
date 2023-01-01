@@ -214,6 +214,14 @@ def disparity_feature_image(r: float, scale: float) -> None:
     plt.show()
 
 
+def disparity_ground_truth(reference: pathlib.Path, mode: str, scale: float,
+                           r: float, max_level: int) -> bool:
+    logger.debug(
+        f'disparity ground truth: reference={reference}, mode={mode}, scale={scale} radius={r} max_level={max_level}')
+
+    return True
+
+
 def __feature_image(blur: bool = False) -> np.ndarray:
     """
     Create a 160x160 feature image with:

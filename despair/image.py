@@ -5,6 +5,7 @@ import math
 import numpy as np
 import pathlib
 import skimage.io as io
+import skimage.transform as transform
 
 logger = logging.getLogger(__name__)
 
@@ -82,3 +83,17 @@ def horizontal_shift(src: np.ndarray, shift: np.ndarray) -> np.ndarray:
         y += 1
 
     return dest
+
+
+def scale_pyramid(src: np.ndarray, levels: int = -1):
+    assert src.ndim == 2
+    assert len(src.shape) == 2
+    src.dtype = np.float64
+
+    if levels < 0:
+        levels = util.max_levels(src.shape)
+    else:
+        levels = min(levels, util.max_levels(src.shape))
+
+    pyramid = transform.pyramid_gaussian(src, levels)
+    print(type(pyramid))
