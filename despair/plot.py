@@ -237,9 +237,9 @@ def disparity_ground_truth(reference: pathlib.Path, mode: str, scale: float,
     # Hack.
     items = disparity.compute(ref_img, query_img, r, max_level)
 
-    item = items[2]
+    item = items[1]
     conf_img = item['confidence']
-    disp_img = np.where(conf_img > 0.1, item['disparity'], 0.0)
+    disp_img = item['disparity']
 
     fig = plt.figure(figsize=(8, 4))
 

@@ -4,6 +4,7 @@ import logging
 import math
 import numpy as np
 import pathlib
+import skimage.util as skutil
 import skimage.io as io
 import skimage.transform as transform
 
@@ -21,7 +22,11 @@ def read_grayscale(path: pathlib.Path) -> np.ndarray:
         The grayscale image.
     """
     try:
-        return io.imread(path, as_gray=True)
+        img = io.imread(path, as_gray=True)
+        if img.dtype == np.float64:
+            return img
+        else:
+            return skutil.img_as_float64(img)
     except FileNotFoundError as e:
         logger.error(e)
         return None
@@ -57,8 +62,8 @@ def horizontal_shift(src: np.ndarray, shift: np.ndarray) -> np.ndarray:
     assert shift.ndim == 2
     assert len(src.shape) == 2
     assert src.shape == shift.shape
-    src.dtype = np.float64
-    shift.dtype = np.float64
+    assert src.dtype == np.float64
+    assert shift.dtype == np.float64
 
     dest = black_grayscale(src.shape)
     rows, cols = src.shape
@@ -86,6 +91,17 @@ def horizontal_shift(src: np.ndarray, shift: np.ndarray) -> np.ndarray:
 
 
 def scale_pyramid(src: np.ndarray, levels: int = -1) -> list[np.ndarray]:
+    """
+    Create a scale pyramid.
+
+    Parameters:
+        src: The image for which to create a scale pyramid.
+        levels: How many levels to create. -1 gives the maximum levels.
+
+    Returns:
+        The scale pyramid where the level with the highest 
+        resolution is the first.
+    """
     assert src.ndim == 2
     assert len(src.shape) == 2
     assert src.dtype == np.float64
@@ -102,3 +118,7 @@ def scale_pyramid(src: np.ndarray, levels: int = -1) -> list[np.ndarray]:
         pyramid_list.append(image)
 
     return pyramid_list
+
+
+def resize(src: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    return transform.resize(src, shape)

@@ -17,12 +17,12 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int = 7, max_level
     assumed to be stereo rectified.
 
     Parameters:
-        reference: The reference image (one channel, floating point 
+        reference: The reference image (one channel, floating point
         image in range [0. - 1.0]).
         query: The query image. Same dimension, and same general
         assumptions as the reference image.
         radius: Radius (in pixels) for the phase filter.
-        max_level: The number of (extra) pyramid levels the disparity is 
+        max_level: The number of (extra) pyramid levels the disparity is
         computed from. -1 gives maximum level.
 
     Returns:
@@ -80,8 +80,6 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int = 7, max_level
         items.insert(0, item)
 
         current_level -= 1
-
-    # return image_pair(coeff, reference_pyr[-1], query_pyr[-1])
 
     return items
 
@@ -175,12 +173,15 @@ def line_pair(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
     # Compute the local frequency.
     local_frequency = __local_frequency(resp_ref, resp_qry)
 
-    # Compute the confidence.
-    confidence[:] = __confidence(
-        resp_ref, resp_qry, magnitude, local_frequency)
-
     # Compute the disparity using the phase angles and the local frequencies.
     disparity[:] = angle / local_frequency
+
+    # Compute the confidence.
+    confidence[:] = __confidence(
+        resp_ref, resp_qry, magnitude, local_frequency, disparity)
+
+    # Remove disparities with too low confidence.
+    disparity[:] = np.where(confidence > 0.05, disparity, 0.0)
 
 
 def __local_frequency(resp_ref: np.ndarray, resp_qry: np.ndarray) -> np.ndarray:
@@ -205,7 +206,8 @@ def __local_frequency(resp_ref: np.ndarray, resp_qry: np.ndarray) -> np.ndarray:
 
 
 def __confidence(resp_ref: np.ndarray, resp_qry: np.ndarray,
-                 magnitude: np.ndarray, local_frequency: np.ndarray) -> np.ndarray:
+                 magnitude: np.ndarray, local_frequency: np.ndarray,
+                 disparity: np.ndarray) -> np.ndarray:
     m2 = np.abs(resp_ref * resp_qry)
     alpha = np.abs(resp_ref) * np.abs(resp_qry)
     gamma = 4.0  # Heuristic value.
@@ -214,4 +216,10 @@ def __confidence(resp_ref: np.ndarray, resp_qry: np.ndarray,
     c2 = c1 * util.cos2(magnitude / 2.0)
     c3 = np.where(local_frequency > 0.0, c2, 0.0)
 
-    return c3
+    # Never expect disparities to be 10 or above.
+    c4 = np.where(np.abs(disparity) < 10.0, c3, 0.0)
+
+    # Just set low confidences to zero.
+    c5 = np.where(np.abs(c4) > 0.001, c4, 0.0)
+
+    return c5
