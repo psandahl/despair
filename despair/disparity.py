@@ -3,6 +3,7 @@ import logging
 import numpy as np
 
 import despair.filter as filter
+import despair.image as image
 import despair.util as util
 
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 __eps = np.finfo(np.float64).eps
 
 
-def compute(reference: np.ndarray, query: np.ndarray, radius: int = 7, levels: int = 0) -> list:
+def compute(reference: np.ndarray, query: np.ndarray, radius: int = 7, max_level: int = -1) -> list:
     """
     Compute the disparity from the reference image to the query image. The images are
     assumed to be stereo rectified.
@@ -21,30 +22,114 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int = 7, levels: i
         query: The query image. Same dimension, and same general
         assumptions as the reference image.
         radius: Radius (in pixels) for the phase filter.
-        levels: The number of (extra) pyramid levels the disparity is 
-        computed from.
+        max_level: The number of (extra) pyramid levels the disparity is 
+        computed from. -1 gives maximum level.
 
     Returns:
-        List of tuples (one tuple per pyramid/scale level). Top level is level zero.
-        Each tuple is (disparity at scale, confidence at scale, reference at scale, query at scale).
+        List of dictionaries. Top level is level zero.
         All are images of the same dimensions per scale.
     """
     assert isinstance(reference, np.ndarray)
     assert isinstance(query, np.ndarray)
-    assert reference.ndim == 1
-    assert query.ndim == 1
+    assert reference.ndim == 2
+    assert query.ndim == 2
     assert len(reference.shape) == 2
     assert reference.shape == query.shape
     assert reference.dtype == np.float64
     assert reference.dtype == query.dtype
     assert radius > 0
-    assert levels >= 0
+    assert max_level >= -1
 
-    return list()
+    logger.debug(f'compute: radius={radius} levels={max_level}')
+    logger.debug(
+        f'Image dimensions={reference.shape[1]}x{reference.shape[0]} px')
+
+    # Generate scale pyramids.
+    logger.debug('Generate scale pyramids ...')
+    reference_pyr = image.scale_pyramid(reference, max_level)
+    logger.debug(
+        f'Pyramid done for reference image. Levels={len(reference_pyr)}')
+
+    query_pyr = image.scale_pyramid(query, max_level)
+    logger.debug(f'Pyramid done for query image. Levels={len(query_pyr)}')
+
+    # Generate filter coefficients.
+    coeff = filter.coeff(radius)
+
+    # Traverse the scale pyramids from the most coarse level and compute the
+    # main algorithm.
+    items = list()
+    coarsest_level = len(reference_pyr) - 1
+    current_level = coarsest_level
+    while current_level >= 0:
+        logger.debug(f'level {current_level}/{coarsest_level}')
+
+        ref_img = reference_pyr[current_level]
+        qry_img = query_pyr[current_level]
+
+        disp_img, conf_img = image_pair(coeff, ref_img, qry_img)
+
+        item = {
+            'level': current_level,
+            'reference': ref_img,
+            'query': qry_img,
+            'disparity': disp_img,
+            'confidence': conf_img
+        }
+
+        items.insert(0, item)
+
+        current_level -= 1
+
+    # return image_pair(coeff, reference_pyr[-1], query_pyr[-1])
+
+    return items
 
 
-def line(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
-         disparity: np.ndarray, confidence: np.ndarray) -> None:
+def image_pair(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Compute the disparity between the reference and the query images.
+
+    Compute the disparity between the reference and the query image lines.
+    The disparity is described how the query image shall be shifted to meet
+    the reference image.
+
+    The confidence is between zero and one.
+
+    Parameters:
+        coeff: The filter coefficients.
+        reference: The reference image.
+        query: The query image.
+
+    Returns:
+        Tuple (disparity image, confidence image).
+    """
+    assert isinstance(coeff, np.ndarray)
+    assert len(coeff.shape) == 1
+    assert coeff.dtype == np.complex128
+    assert isinstance(reference, np.ndarray)
+    assert len(reference.shape) == 2
+    assert reference.dtype == np.float64
+    assert isinstance(query, np.ndarray)
+    assert query.shape == reference.shape
+    assert query.dtype == reference.dtype
+
+    logger.debug(
+        f'image_pair: dimensions={reference.shape[1]}x{reference.shape[0]} px')
+
+    disparity = np.zeros_like(reference)
+    confidence = np.zeros_like(reference)
+
+    rows, _ = reference.shape
+    for row in range(rows):
+        line_pair(coeff, reference[row, :], query[row, :],
+                  disparity[row, :], confidence[row, :])
+
+    return disparity, confidence
+
+
+def line_pair(coeff: np.ndarray, reference: np.ndarray, query: np.ndarray,
+              disparity: np.ndarray, confidence: np.ndarray) -> None:
     """
     Compute the disparity between the reference and the query image lines.
     The disparity is described how the query image shall be shifted to meet

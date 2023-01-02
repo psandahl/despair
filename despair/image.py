@@ -85,10 +85,10 @@ def horizontal_shift(src: np.ndarray, shift: np.ndarray) -> np.ndarray:
     return dest
 
 
-def scale_pyramid(src: np.ndarray, levels: int = -1):
+def scale_pyramid(src: np.ndarray, levels: int = -1) -> list[np.ndarray]:
     assert src.ndim == 2
     assert len(src.shape) == 2
-    src.dtype = np.float64
+    assert src.dtype == np.float64
 
     if levels < 0:
         levels = util.max_levels(src.shape)
@@ -96,4 +96,9 @@ def scale_pyramid(src: np.ndarray, levels: int = -1):
         levels = min(levels, util.max_levels(src.shape))
 
     pyramid = transform.pyramid_gaussian(src, levels)
-    print(type(pyramid))
+
+    pyramid_list = list()
+    for image in pyramid:
+        pyramid_list.append(image)
+
+    return pyramid_list

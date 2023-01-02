@@ -191,8 +191,8 @@ def disparity_feature_image(r: float, scale: float) -> None:
     disparity_img = np.zeros_like(reference_img)
     confidence_img = np.zeros_like(reference_img)
 
-    disparity.line(coeff, reference_img, query_img,
-                   disparity_img, confidence_img)
+    disparity.line_pair(coeff, reference_img, query_img,
+                        disparity_img, confidence_img)
 
     # Hack to filter disparity using confidence. Just for plotting.
     disparity_img = np.where(confidence_img > 0.1, disparity_img, 0.0)
@@ -218,6 +218,44 @@ def disparity_ground_truth(reference: pathlib.Path, mode: str, scale: float,
                            r: float, max_level: int) -> bool:
     logger.debug(
         f'disparity ground truth: reference={reference}, mode={mode}, scale={scale} radius={r} max_level={max_level}')
+
+    ref_img = image.read_grayscale(reference)
+    if ref_img is None:
+        return False
+
+    shift_img = None
+    if mode == 'global':
+        shift_img = __global_shift_image(ref_img.shape, scale)
+    elif mode == 'peak':
+        shift_img = __peak_shift_image(ref_img.shape, scale)
+    else:
+        logger.error(f"Unknown mode='{mode}'")
+        return False
+
+    query_img = image.horizontal_shift(ref_img, shift_img)
+
+    # Hack.
+    items = disparity.compute(ref_img, query_img, r, max_level)
+
+    item = items[2]
+    conf_img = item['confidence']
+    disp_img = np.where(conf_img > 0.1, item['disparity'], 0.0)
+
+    fig = plt.figure(figsize=(8, 4))
+
+    ax1 = fig.add_subplot(1, 2, 1)
+    ax1.grid()
+    ax1.imshow(disp_img, cmap='gray', vmin=np.min(
+        disp_img), vmax=np.max(disp_img))
+    ax1.set_title('Disparity')
+
+    ax2 = fig.add_subplot(1, 2, 2)
+    ax2.grid()
+    ax2.imshow(conf_img, cmap='gray')
+    ax2.set_title('Confidence')
+
+    fig.tight_layout()
+    plt.show()
 
     return True
 

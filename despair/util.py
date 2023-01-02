@@ -41,11 +41,10 @@ def max_levels(shape: tuple[int, int]) -> int:
     Returns:
         The max number of levels.
     """
-    rows, cols = shape
-    min_size = min(rows, cols)
+    _, cols = shape
 
-    threshold = math.log2(32)
-    levels = math.floor(math.log2(min_size))
+    threshold = math.log2(16)
+    levels = math.floor(math.log2(cols))
     if levels > threshold:
         return levels - threshold
     else:
