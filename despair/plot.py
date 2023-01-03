@@ -5,6 +5,7 @@ import pathlib
 import scipy.ndimage as ndimage
 
 import despair.disparity as disparity
+import despair.disparity2 as disparity2
 import despair.filter as filter
 import despair.image as image
 
@@ -155,7 +156,80 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     return True
 
 
-def disparity_feature_image(r: float, scale: float) -> None:
+def disparity_feature_image(radius: float, scale: float) -> None:
+    """
+    Plot disparity values for the feature image.
+    """
+    logger.debug(f'disparity_feature_image: radius={radius} scale={scale}')
+
+    # Generate the feature image, and from that extract the feature signal/reference image.
+    reference_img = __feature_image(blur=True)
+    shift_img = __global_shift_image(reference_img.shape, scale)
+    query_img = image.horizontal_shift(reference_img, shift_img)
+
+    reference_signal = reference_img[0, :]
+    x = np.arange(len(reference_signal), dtype=np.float64)
+
+    fig = plt.figure(figsize=(8, 6))
+
+    # Visualize the reference signal.
+    ax_ref = fig.add_subplot(5, 1, 1)
+    ax_ref.grid()
+    ax_ref.plot(x, reference_signal, color='#000000')
+    ax_ref.set_title('Reference signal')
+    ax_ref.set_xlim(left=0.0, right=len(reference_signal) - 1)
+
+    # Visualize the query signal.
+    query_signal = query_img[0, :]
+    ax_qry = fig.add_subplot(5, 1, 2)
+    ax_qry.grid()
+    ax_qry.plot(x, query_signal, color='#000000')
+    ax_qry.set_title(f'Query signal with disparity={scale}')
+    ax_qry.set_xlim(left=0.0, right=len(query_signal) - 1)
+
+    # Get the filter coefficients for the given radius.
+    coeff = filter.coeff(radius)
+
+    # Run the disparity computations.
+    ref_resp = disparity2.filter_response(coeff, reference_img)
+    qry_resp = disparity2.filter_response(coeff, query_img)
+
+    frequency = disparity2.local_frequency(ref_resp, qry_resp)
+    confidence = disparity2.confidence(ref_resp, qry_resp, frequency)
+    phase_difference = disparity2.phase_difference(ref_resp, qry_resp)
+    phase_disparity = disparity2.phase_disparity(
+        phase_difference, frequency, confidence)
+
+    # Visualize the local frequency.
+    frequency_signal = frequency[0, :]
+    ax_frq = fig.add_subplot(5, 1, 3)
+    ax_frq.grid()
+    ax_frq.plot(x, frequency_signal, color='#ff0000')
+    ax_frq.set_title('Local frequency')
+    ax_frq.set_xlim(left=0.0, right=len(frequency_signal) - 1)
+
+    # Visualize the confidence.
+    confidence_signal = confidence[0, :]
+    ax_conf = fig.add_subplot(5, 1, 4)
+    ax_conf.grid()
+    ax_conf.plot(x, confidence_signal, color='#ffff00')
+    ax_conf.set_title('Confidence')
+    ax_conf.set_xlim(left=0.0, right=len(confidence_signal) - 1)
+
+    # Visualize the disparity.
+    disparity_signal = phase_disparity[0, :]
+    ax_disp = fig.add_subplot(5, 1, 5)
+    ax_disp.grid()
+    ax_disp.plot(x, disparity_signal, color='#0000ff')
+    ax_disp.set_title('Disparity')
+    ax_disp.set_xlim(left=0.0, right=len(disparity_signal) - 1)
+
+    fig.suptitle(f'Disparity plots for radius={radius} shift scale={scale}')
+    fig.tight_layout()
+    plt.show()
+
+
+def disparity_feature_image2(r: float, scale: float) -> None:
     """
     Plot disparity values for the feature image.
     """
