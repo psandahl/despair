@@ -6,7 +6,6 @@ import pathlib
 import scipy.ndimage as ndimage
 
 import despair.disparity as disparity
-import despair.disparity2 as disparity2
 import despair.filter as filter
 import despair.image as image
 import despair.util as util
@@ -271,13 +270,13 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
     # Run the disparity computations.
     coeff = filter.coeff(radius)
 
-    ref_resp = disparity2.filter_response(coeff, ref_pyr_img)
-    qry_resp = disparity2.filter_response(coeff, qry_pyr_img)
+    ref_resp = disparity.filter_response(coeff, ref_pyr_img)
+    qry_resp = disparity.filter_response(coeff, qry_pyr_img)
 
-    frequency = disparity2.local_frequency(ref_resp, qry_resp)
-    confidence = disparity2.confidence(ref_resp, qry_resp, frequency)
-    phase_difference = disparity2.phase_difference(ref_resp, qry_resp)
-    phase_disparity = disparity2.phase_disparity(
+    frequency = disparity.local_frequency(ref_resp, qry_resp)
+    confidence = disparity.confidence(ref_resp, qry_resp, frequency)
+    phase_difference = disparity.phase_difference(ref_resp, qry_resp)
+    phase_disparity = disparity.phase_disparity(
         phase_difference, frequency, confidence)
 
     fig = plt.figure(figsize=(8, 6))
@@ -318,52 +317,6 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
 
     fig.suptitle(
         f'Disparity plots radius={radius} shift scale={shift_scale} level={target_level}')
-    fig.tight_layout()
-    plt.show()
-
-    return True
-
-
-def disparity_ground_truth(reference: pathlib.Path, mode: str, scale: float,
-                           r: float, max_level: int) -> bool:
-    logger.debug(
-        f'disparity ground truth: reference={reference}, mode={mode}, scale={scale} radius={r} max_level={max_level}')
-
-    ref_img = image.read_grayscale(reference)
-    if ref_img is None:
-        return False
-
-    shift_img = None
-    if mode == 'global':
-        shift_img = __global_shift_image(ref_img.shape, scale)
-    elif mode == 'peak':
-        shift_img = __peak_shift_image(ref_img.shape, scale)
-    else:
-        logger.error(f"Unknown mode='{mode}'")
-        return False
-
-    query_img = image.horizontal_shift(ref_img, shift_img)
-
-    # Hack.
-    items = disparity.compute(ref_img, query_img, r, max_level)
-
-    item = items[1]
-    conf_img = item['confidence']
-    disp_img = item['disparity']
-
-    fig = plt.figure(figsize=(8, 4))
-
-    ax1 = fig.add_subplot(1, 2, 1)
-    ax1.grid()
-    ax1.imshow(disp_img, cmap='gray', vmin=np.min(
-        disp_img), vmax=np.max(disp_img))
-    ax1.set_title('Disparity')
-
-    ax2 = fig.add_subplot(1, 2, 2)
-    ax2.grid()
-    ax2.imshow(conf_img, cmap='gray')
-    ax2.set_title('Confidence')
-
     fig.tight_layout()
     plt.show()
 
