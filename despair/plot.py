@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import logging
+import math
 import numpy as np
 import pathlib
 import scipy.ndimage as ndimage
@@ -8,6 +9,7 @@ import despair.disparity as disparity
 import despair.disparity2 as disparity2
 import despair.filter as filter
 import despair.image as image
+import despair.util as util
 
 logger = logging.getLogger(__name__)
 
@@ -229,63 +231,97 @@ def disparity_feature_image(radius: float, scale: float) -> None:
     plt.show()
 
 
-def disparity_feature_image2(r: float, scale: float) -> None:
-    """
-    Plot disparity values for the feature image.
-    """
-    logger.debug(f'disparity_feature_image: radius={r} scale={scale}')
+def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: float,
+                     radius: float, target_level: int) -> bool:
+    logger.debug(
+        f'disparity single image: reference={reference}, shift_mode={shift_mode}, shift_scale={shift_scale} radius={radius} target_level={target_level}')
 
-    # Get the filter coefficients for the given radius.
-    coeff = filter.coeff(r)
+    # Setting stuff up.
+    ref_img = image.read_grayscale(reference)
+    if ref_img is None:
+        return False
 
-    # Generate the feature image, and from that extract the feature signal/reference image.
-    img = __feature_image(blur=True)
-    reference_img = img[0, :]
+    max_levels = util.max_levels(ref_img.shape)
+    if max_levels < target_level:
+        logger.error(
+            f'Target level={target_level} is greater than available max level={max_levels}')
+        return False
 
-    x = np.arange(len(reference_img), dtype=np.float64)
+    adapted_shift_scale = shift_scale * math.pow(2.0, target_level)
+    logger.info(
+        f'shift_scale={shift_scale} adapted for target level={target_level} is {adapted_shift_scale} on level zero')
 
-    fig = plt.figure(figsize=(8, 7))
+    shift_img = None
+    if shift_mode == 'global':
+        shift_img = __global_shift_image(ref_img.shape, adapted_shift_scale)
+    elif shift_mode == 'peak':
+        shift_img = __peak_shift_image(ref_img.shape, adapted_shift_scale)
+    else:
+        logger.error(f"Unknown mode='{shift_mode}'")
+        return False
 
-    # Visualize the reference image as a signal.
-    ax1 = fig.add_subplot(4, 1, 1)
-    ax1.grid()
-    ax1.plot(x, reference_img, color='#000000')
-    ax1.set_title('Reference signal')
-    ax1.set_xlim(left=0.0, right=len(reference_img) - 1)
+    qry_img = image.horizontal_shift(ref_img, shift_img)
 
-    shift_img = __global_shift_image(img.shape, scale)
-    query_img = image.horizontal_shift(img, shift_img)[0, :]
+    ref_pyramid = image.scale_pyramid(ref_img, target_level)
+    qry_pyramid = image.scale_pyramid(qry_img, target_level)
 
-    ax_qry = fig.add_subplot(4, 1, 2)
+    ref_pyr_img = ref_pyramid[-1]
+    qry_pyr_img = qry_pyramid[-1]
+
+    # Run the disparity computations.
+    coeff = filter.coeff(radius)
+
+    ref_resp = disparity2.filter_response(coeff, ref_pyr_img)
+    qry_resp = disparity2.filter_response(coeff, qry_pyr_img)
+
+    frequency = disparity2.local_frequency(ref_resp, qry_resp)
+    confidence = disparity2.confidence(ref_resp, qry_resp, frequency)
+    phase_difference = disparity2.phase_difference(ref_resp, qry_resp)
+    phase_disparity = disparity2.phase_disparity(
+        phase_difference, frequency, confidence)
+
+    fig = plt.figure(figsize=(8, 6))
+
+    # Visualize reference and query images.
+    ax_ref = fig.add_subplot(3, 2, 1)
+    ax_ref.imshow(ref_pyr_img, cmap='gray', vmin=0.0, vmax=1.0)
+    ax_ref.grid()
+    ax_ref.set_title('Reference image')
+
+    ax_qry = fig.add_subplot(3, 2, 2)
+    ax_qry.imshow(qry_pyr_img, cmap='gray', vmin=0.0, vmax=1.0)
     ax_qry.grid()
-    ax_qry.plot(x, query_img, color='#000000')
-    ax_qry.set_title(f'Query signal disparity={scale}')
-    ax_qry.set_xlim(left=0.0, right=len(query_img) - 1)
+    ax_qry.set_title('Query image')
 
-    disparity_img = np.zeros_like(reference_img)
-    confidence_img = np.zeros_like(reference_img)
+    # Visualize response magnitudes.
+    ax_ref_mag = fig.add_subplot(3, 2, 3)
+    ax_ref_mag.imshow(np.abs(ref_resp), cmap='gray', vmin=0.0, vmax=1.0)
+    ax_ref_mag.grid()
+    ax_ref_mag.set_title('Reference response magnitude')
 
-    disparity.line_pair(coeff, reference_img, query_img,
-                        disparity_img, confidence_img)
+    ax_qry_mag = fig.add_subplot(3, 2, 4)
+    ax_qry_mag.imshow(np.abs(qry_resp), cmap='gray', vmin=0.0, vmax=1.0)
+    ax_qry_mag.grid()
+    ax_qry_mag.set_title('Query response magnitude')
 
-    # Hack to filter disparity using confidence. Just for plotting.
-    disparity_img = np.where(confidence_img > 0.1, disparity_img, 0.0)
-
-    ax_disp = fig.add_subplot(4, 1, 3)
-    ax_disp.grid()
-    ax_disp.plot(x, disparity_img, color='#0000ff')
-    ax_disp.set_title('Computed disparity (filtered)')
-    ax_disp.set_xlim(left=0.0, right=len(disparity_img) - 1)
-
-    ax_conf = fig.add_subplot(4, 1, 4)
+    # Visualize confidence and disparity.
+    ax_conf = fig.add_subplot(3, 2, 5)
+    ax_conf.imshow(confidence, cmap='gray', vmin=0.0, vmax=1.0)
     ax_conf.grid()
-    ax_conf.plot(x, confidence_img, color='#00ff00')
-    ax_conf.set_title('Computed confidence')
-    ax_conf.set_xlim(left=0.0, right=len(confidence_img) - 1)
+    ax_conf.set_title('Confidence')
 
-    fig.suptitle(f'Disparity plots for radius={r} shift scale={scale}')
+    ax_disp = fig.add_subplot(3, 2, 6)
+    ax_disp.imshow(phase_disparity, cmap='gray', vmin=np.min(
+        phase_disparity), vmax=np.max(phase_disparity))
+    ax_disp.grid()
+    ax_disp.set_title('Disparity')
+
+    fig.suptitle(
+        f'Disparity plots radius={radius} shift scale={shift_scale} level={target_level}')
     fig.tight_layout()
     plt.show()
+
+    return True
 
 
 def disparity_ground_truth(reference: pathlib.Path, mode: str, scale: float,
