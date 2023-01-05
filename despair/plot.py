@@ -192,13 +192,13 @@ def disparity_feature_image(radius: float, scale: float) -> None:
     coeff = filter.coeff(radius)
 
     # Run the disparity computations.
-    ref_resp = disparity2.filter_response(coeff, reference_img)
-    qry_resp = disparity2.filter_response(coeff, query_img)
+    ref_resp = disparity.filter_response(coeff, reference_img)
+    qry_resp = disparity.filter_response(coeff, query_img)
 
-    frequency = disparity2.local_frequency(ref_resp, qry_resp)
-    confidence = disparity2.confidence(ref_resp, qry_resp, frequency)
-    phase_difference = disparity2.phase_difference(ref_resp, qry_resp)
-    phase_disparity = disparity2.phase_disparity(
+    frequency = disparity.local_frequency(ref_resp, qry_resp)
+    confidence = disparity.confidence(ref_resp, qry_resp, frequency)
+    phase_difference = disparity.phase_difference(ref_resp, qry_resp)
+    phase_disparity = disparity.phase_disparity(
         phase_difference, frequency, confidence)
 
     # Visualize the local frequency.
@@ -267,11 +267,17 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
     ref_pyr_img = ref_pyramid[-1]
     qry_pyr_img = qry_pyramid[-1]
 
+    __image_pair(ref_pyr_img, qry_pyr_img, radius)
+
+    return True
+
+
+def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, radius: float) -> None:
     # Run the disparity computations.
     coeff = filter.coeff(radius)
 
-    ref_resp = disparity.filter_response(coeff, ref_pyr_img)
-    qry_resp = disparity.filter_response(coeff, qry_pyr_img)
+    ref_resp = disparity.filter_response(coeff, ref_img)
+    qry_resp = disparity.filter_response(coeff, qry_img)
 
     frequency = disparity.local_frequency(ref_resp, qry_resp)
     confidence = disparity.confidence(ref_resp, qry_resp, frequency)
@@ -283,12 +289,12 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
 
     # Visualize reference and query images.
     ax_ref = fig.add_subplot(3, 2, 1)
-    ax_ref.imshow(ref_pyr_img, cmap='gray', vmin=0.0, vmax=1.0)
+    ax_ref.imshow(ref_img, cmap='gray', vmin=0.0, vmax=1.0)
     ax_ref.grid()
     ax_ref.set_title('Reference image')
 
     ax_qry = fig.add_subplot(3, 2, 2)
-    ax_qry.imshow(qry_pyr_img, cmap='gray', vmin=0.0, vmax=1.0)
+    ax_qry.imshow(qry_img, cmap='gray', vmin=0.0, vmax=1.0)
     ax_qry.grid()
     ax_qry.set_title('Query image')
 
@@ -315,12 +321,9 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
     ax_disp.grid()
     ax_disp.set_title('Disparity')
 
-    fig.suptitle(
-        f'Disparity plots radius={radius} shift scale={shift_scale} level={target_level}')
+    fig.suptitle(f'Disparity plots radius={radius}')
     fig.tight_layout()
     plt.show()
-
-    return True
 
 
 def __feature_image(blur: bool = False) -> np.ndarray:
