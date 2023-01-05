@@ -1,5 +1,6 @@
 import despair.filter as filter
 import despair.util as util
+import despair.tests.util as tutil
 
 import math
 import numpy as np
@@ -16,10 +17,7 @@ class FilterTest(unittest.TestCase):
         """
         Setup all stuff before each test function.
         """
-        self.signal = np.zeros(160, dtype=np.float64)
-        self.signal[19:22] = 1.0
-        self.signal[60:141] = 1.0
-        self.signal[99:102] = 0.0
+        self.signal = tutil.feature_image()[0, :]
 
         self.filters = list()
 

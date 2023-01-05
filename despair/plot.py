@@ -3,12 +3,12 @@ import logging
 import math
 import numpy as np
 import pathlib
-import scipy.ndimage as ndimage
 
 import despair.disparity as disparity
 import despair.filter as filter
 import despair.image as image
 import despair.util as util
+import despair.tests.util as tutil
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def response(r: float) -> None:
     logger.debug(f'response: radius={r}')
 
     # Generate the feature image, and from that extract the feature signal.
-    image = __feature_image(blur=True)
+    image = tutil.feature_image(blur=True)
     signal = image[0, :]
 
     x = np.arange(len(signal), dtype=np.float64)
@@ -126,9 +126,9 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
 
     shift_img = None
     if mode == 'global':
-        shift_img = __global_shift_image(ref_img.shape, scale)
+        shift_img = tutil.global_shift_image(ref_img.shape, scale)
     elif mode == 'peak':
-        shift_img = __peak_shift_image(ref_img.shape, scale)
+        shift_img = tutil.peak_shift_image(ref_img.shape, scale)
     else:
         logger.error(f"Unknown mode='{mode}'")
         return False
@@ -164,8 +164,8 @@ def disparity_feature_image(radius: float, scale: float) -> None:
     logger.debug(f'disparity_feature_image: radius={radius} scale={scale}')
 
     # Generate the feature image, and from that extract the feature signal/reference image.
-    reference_img = __feature_image(blur=True)
-    shift_img = __global_shift_image(reference_img.shape, scale)
+    reference_img = tutil.feature_image(blur=True)
+    shift_img = tutil.global_shift_image(reference_img.shape, scale)
     query_img = image.horizontal_shift(reference_img, shift_img)
 
     reference_signal = reference_img[0, :]
@@ -252,9 +252,10 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
 
     shift_img = None
     if shift_mode == 'global':
-        shift_img = __global_shift_image(ref_img.shape, adapted_shift_scale)
+        shift_img = tutil.global_shift_image(
+            ref_img.shape, adapted_shift_scale)
     elif shift_mode == 'peak':
-        shift_img = __peak_shift_image(ref_img.shape, adapted_shift_scale)
+        shift_img = tutil.peak_shift_image(ref_img.shape, adapted_shift_scale)
     else:
         logger.error(f"Unknown mode='{shift_mode}'")
         return False
@@ -358,69 +359,3 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, radius: float) -> Non
     fig.suptitle(f'Disparity plots radius={radius}')
     fig.tight_layout()
     plt.show()
-
-
-def __feature_image(blur: bool = False) -> np.ndarray:
-    """
-    Create a 160x160 feature image with:
-    1. White line (at 20).
-    2. Black to white edge (at 60).
-    3. Black line (at 100).
-    4. White to black edge (at 140).
-
-    Parameters:
-        blur: Flag to request gaussian blur of image.
-
-    Returns:
-        The image.
-    """
-    img = image.black_grayscale((160, 160))
-
-    img[:, 19:22] = 1.0
-    img[:, 60:141] = 1.0
-    img[:, 99:102] = 0.0
-
-    if blur:
-        return ndimage.gaussian_filter(img, 1.0)
-    else:
-        return img
-
-
-def __global_shift_image(shape: tuple[int, int], scale: float) -> np.ndarray:
-    """
-    Create a global shift image.
-
-    Parameters:
-        shape: Shape of the image.
-        scale: Shift scale.
-
-    Returns:
-        The shift image.
-    """
-    img = image.black_grayscale(shape)
-    img[:, :] = scale
-
-    return img
-
-
-def __peak_shift_image(shape: tuple[int, int], scale: float) -> np.ndarray:
-    """
-    Create shift image with a peak in the middle.
-
-    Parameters:
-        shape: Shape of the image.
-        scale: Shift scale.
-
-    Returns:
-        The shift image.
-    """
-    rows, cols = shape
-    min_radius = (min(rows, cols) - 1) / 2
-    center_x, center_y = (cols - 1) / 2, (rows - 1) / 2
-
-    ys, xs = np.ogrid[:rows, :cols]
-    img = np.cos(((ys - center_y) ** 2 + (xs - center_x) ** 2) /
-                 min_radius ** 2)
-    img = np.where(img > 0, img, 0.0)
-
-    return img * scale

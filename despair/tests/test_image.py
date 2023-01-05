@@ -1,4 +1,5 @@
 import despair.image as image
+import despair.tests.util as tutil
 
 import numpy as np
 import unittest
@@ -17,7 +18,7 @@ class ImageTest(unittest.TestCase):
         """
         Test zero valued shift.
         """
-        shift = image.black_grayscale(self.src_img.shape)
+        shift = tutil.global_shift_image(self.src_img.shape, 0.0)
         dst = image.horizontal_shift(self.src_img, shift)
         np.testing.assert_array_almost_equal(dst, self.src_img)
 
@@ -25,8 +26,7 @@ class ImageTest(unittest.TestCase):
         """
         Shift one step to the right.
         """
-        shift = image.black_grayscale(self.src_img.shape)
-        shift[:, :] = 1.0
+        shift = tutil.global_shift_image(self.src_img.shape, 1.0)
 
         dst = image.horizontal_shift(self.src_img, shift)
         expected = np.array([0, 1, 2, 0, 4, 5, 0, 7, 8],
@@ -38,8 +38,7 @@ class ImageTest(unittest.TestCase):
         """
         Shift one step to the left.
         """
-        shift = image.black_grayscale(self.src_img.shape)
-        shift[:, :] = -1.0
+        shift = tutil.global_shift_image(self.src_img.shape, -1.0)
 
         dst = image.horizontal_shift(self.src_img, shift)
         expected = np.array([2, 3, 0, 5, 6, 0, 8, 9, 0],
@@ -51,8 +50,7 @@ class ImageTest(unittest.TestCase):
         """
         Shift half step to the right.
         """
-        shift = image.black_grayscale(self.src_img.shape)
-        shift[:, :] = 0.5
+        shift = tutil.global_shift_image(self.src_img.shape, 0.5)
 
         dst = image.horizontal_shift(self.src_img, shift)
         expected = np.array([0, 1.5, 2.5, 0, 4.5, 5.5, 0, 7.5, 8.5],
@@ -64,8 +62,7 @@ class ImageTest(unittest.TestCase):
         """
         Shift half step to the left.
         """
-        shift = image.black_grayscale(self.src_img.shape)
-        shift[:, :] = -0.5
+        shift = tutil.global_shift_image(self.src_img.shape, -0.5)
 
         dst = image.horizontal_shift(self.src_img, shift)
         expected = np.array([1.5, 2.5, 0, 4.5, 5.5, 0, 7.5, 8.5, 0],
