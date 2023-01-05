@@ -39,7 +39,7 @@ def main() -> None:
                         help='set the effective log level (default: warning)')
     parser.add_argument('--plot', type=str, choices=['coeff', 'response', 'shift', 'disparity'],
                         help='plot the given function')
-    parser.add_argument('--disparity-mode', type=str, choices=['feature-image', 'single-image'],
+    parser.add_argument('--disparity-mode', type=str, choices=['feature-image', 'single-gt', 'pair'],
                         help='run disparity in the given mode')
     parser.add_argument('--shift-mode', type=str, choices=['global', 'peak'],
                         help='shift mode for disparity ground truth')
@@ -47,6 +47,8 @@ def main() -> None:
                         help='set the scale for the ground thruth shift (default: 1)')
     parser.add_argument('--reference', type=pathlib.Path,
                         help='the reference image')
+    parser.add_argument('--query', type=pathlib.Path,
+                        help='the query image')
     parser.add_argument('--radius', type=int, choices=range(1, 10), default=7,
                         help='set the phase filter radius (default: 7)')
     parser.add_argument('--max-levels', type=int, choices=range(-1, 8), default=3,
@@ -79,10 +81,18 @@ def main() -> None:
         if args.disparity_mode == 'feature-image':
             plot.disparity_feature_image(args.radius, args.shift_scale)
             sys.exit(0)
-        elif args.disparity_mode == 'single-image':
+        elif args.disparity_mode == 'single-gt':
             if not args.reference is None and not args.shift_mode is None:
                 result = plot.disparity_single(
                     args.reference, args.shift_mode, args.shift_scale, args.radius, args.target_level)
+                sys.exit(0 if result else 1)
+            else:
+                parser.print_usage()
+                sys.exit(1)
+        elif args.disparity_mode == 'pair':
+            if not args.reference is None and not args.query is None:
+                result = plot.disparity_pair(
+                    args.reference, args.query, args.radius, args.target_level)
                 sys.exit(0 if result else 1)
             else:
                 parser.print_usage()

@@ -233,7 +233,7 @@ def disparity_feature_image(radius: float, scale: float) -> None:
 def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: float,
                      radius: float, target_level: int) -> bool:
     logger.debug(
-        f'disparity single image: reference={reference}, shift_mode={shift_mode}, shift_scale={shift_scale} radius={radius} target_level={target_level}')
+        f'disparity single: reference={reference}, shift_mode={shift_mode}, shift_scale={shift_scale} radius={radius} target_level={target_level}')
 
     # Setting stuff up.
     ref_img = image.read_grayscale(reference)
@@ -260,6 +260,40 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
         return False
 
     qry_img = image.horizontal_shift(ref_img, shift_img)
+
+    ref_pyramid = image.scale_pyramid(ref_img, target_level)
+    qry_pyramid = image.scale_pyramid(qry_img, target_level)
+
+    ref_pyr_img = ref_pyramid[-1]
+    qry_pyr_img = qry_pyramid[-1]
+
+    __image_pair(ref_pyr_img, qry_pyr_img, radius)
+
+    return True
+
+
+def disparity_pair(reference: pathlib.Path, query: pathlib.Path, radius: float, target_level: int) -> bool:
+    logger.debug(
+        f'disparity pair: reference={reference}, query={query} radius={radius} target_level={target_level}')
+
+    # Setting stuff up.
+    ref_img = image.read_grayscale(reference)
+    if ref_img is None:
+        return False
+
+    qry_img = image.read_grayscale(query)
+    if qry_img is None:
+        return False
+
+    if ref_img.shape != qry_img.shape:
+        logger.error('Reference and query does not have the same shape')
+        return False
+
+    max_levels = util.max_levels(ref_img.shape)
+    if max_levels < target_level:
+        logger.error(
+            f'Target level={target_level} is greater than available max level={max_levels}')
+        return False
 
     ref_pyramid = image.scale_pyramid(ref_img, target_level)
     qry_pyramid = image.scale_pyramid(qry_img, target_level)
