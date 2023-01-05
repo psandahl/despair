@@ -8,10 +8,6 @@ import scipy.signal as signal
 import unittest
 
 
-def is_peak(peaks: np.ndarray, target: int, margin: int = 0) -> bool:
-    return np.min(np.abs(peaks - target)) <= margin
-
-
 class FilterTest(unittest.TestCase):
     def setUp(self) -> None:
         """
@@ -64,7 +60,8 @@ class FilterTest(unittest.TestCase):
                 ph = phase[index]
 
                 # The target index shall be a peak in the magnitude.
-                self.assertTrue(is_peak(peaks, index, 2), msg=f'radius={r}')
+                self.assertTrue(tutil.is_peak(
+                    peaks, index, 2), msg=f'radius={r}')
 
                 # Phase shall be equal to the goal.
                 self.assertAlmostEqual(
@@ -95,11 +92,11 @@ class FilterTest(unittest.TestCase):
             for index0, index1, goal in [(59, 60, math.pi / 2), (140, 141, -math.pi / 2)]:
                 # For edges in the test signal the exact response lies in between
                 # the pixels, and has to be interpolated.
-                mag = util.mix(magnitude[index0], magnitude[index1], 0.5)
                 ph = util.mix(phase[index0], phase[index1], 0.5)
 
                 # The target index shall be a peak in the magnitude.
-                self.assertTrue(is_peak(peaks, index0, 1), msg=f'radius={r}')
+                self.assertTrue(tutil.is_peak(
+                    peaks, index0, 1), msg=f'radius={r}')
 
                 # Phase shall be equal to the goal.
                 self.assertAlmostEqual(goal, ph, places=2)

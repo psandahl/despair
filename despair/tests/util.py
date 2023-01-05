@@ -4,6 +4,10 @@ import scipy.ndimage as ndimage
 import despair.image as image
 
 
+def is_peak(peaks: np.ndarray, target: int, margin: int = 0) -> bool:
+    return np.min(np.abs(peaks - target)) <= margin
+
+
 def feature_image(blur: bool = False) -> np.ndarray:
     """
     Create a 160x160 feature image with:
