@@ -45,10 +45,14 @@ class DisparityTest(unittest.TestCase):
 
         # Setup convenient signals (image lines).
         self.disparity_signal = self.phase_disparity[0, :]
+        self.confidence_signal = self.confidence[0, :]
 
         return super().setUp()
 
     def test_signal_arrays(self) -> None:
+        """
+        Test that images look like what to expect.
+        """
         self.assertEqual(self.ref_resp.shape, (160, 160))
         self.assertIsInstance(self.ref_resp, np.ndarray)
         self.assertEqual(self.ref_resp.dtype, np.complex128)
@@ -74,15 +78,37 @@ class DisparityTest(unittest.TestCase):
         self.assertEqual(self.phase_disparity.dtype, np.float64)
 
     def test_disparity_values(self) -> None:
+        """
+        Test that there are four disparity peaks, at the expected
+        places.
+        """
+
         # Shall be peaks around 20, 60, 100 and 140.
         peaks, _ = signal.find_peaks(self.disparity_signal)
-
         self.assertEqual(len(peaks), 4)
-        for disp in [20, 60, 100, 140]:
-            self.assertTrue(tutil.is_peak(peaks, disp, 1),
-                            msg=f'peak@{disp}')
+
+        for index in [20, 60, 100, 140]:
+            self.assertTrue(tutil.is_peak(peaks, index, 1),
+                            msg=f'peak@{index}')
 
             self.assertAlmostEqual(-self.shift_scale,
-                                   self.disparity_signal[disp],
+                                   self.disparity_signal[index],
                                    places=1,
-                                   msg=f'value@{disp}')
+                                   msg=f'value@{index}')
+
+    def test_confidence_values(self) -> None:
+        """
+        Test that there are four confidence peaks, and
+        that confidence is within range.
+        """
+
+        self.assertGreaterEqual(np.min(self.confidence_signal), 0.0)
+        self.assertLessEqual(np.max(self.confidence_signal), 1.0)
+
+        # Shall be peaks around 20, 60, 100 and 140.
+        peaks, _ = signal.find_peaks(self.confidence_signal)
+        self.assertEqual(len(peaks), 4)
+
+        for index in [20, 60, 100, 140]:
+            self.assertTrue(tutil.is_peak(peaks, index, 1),
+                            msg=f'peak@{index}')
