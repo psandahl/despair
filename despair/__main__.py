@@ -29,7 +29,7 @@ def setup_logging() -> None:
     logger.addHandler(handler)
 
 
-def main() -> None:
+def main() -> bool:
     """
     Entry point for application.
     """
@@ -65,51 +65,48 @@ def main() -> None:
     # Check for plotting.
     if args.plot == 'coeff':
         plot.coeff(args.radius)
-        sys.exit(0)
+        return True
     elif args.plot == 'response':
         plot.response_feature_image(args.radius)
-        sys.exit(0)
+        return True
     elif args.plot == 'shift':
         if not args.reference is None and not args.shift_mode is None:
-            result = plot.shift(
+            return plot.shift(
                 args.reference, args.shift_mode, args.shift_scale)
-            sys.exit(0 if result else 1)
         else:
             parser.print_usage()
-            sys.exit(1)
+            return False
     elif args.plot == 'disparity':
         if args.disparity_mode == 'feature-image':
             plot.disparity_feature_image(args.radius, args.shift_scale)
-            sys.exit(0)
+            return True
         elif args.disparity_mode == 'single-gt':
             if not args.reference is None and not args.shift_mode is None:
-                result = plot.disparity_single(
+                return plot.disparity_single(
                     args.reference, args.shift_mode, args.shift_scale, args.radius, args.target_level)
-                sys.exit(0 if result else 1)
             else:
                 parser.print_usage()
-                sys.exit(1)
+                return False
         elif args.disparity_mode == 'pair':
             if not args.reference is None and not args.query is None:
-                result = plot.disparity_pair(
+                return plot.disparity_pair(
                     args.reference, args.query, args.radius, args.target_level)
-                sys.exit(0 if result else 1)
             else:
                 parser.print_usage()
-                sys.exit(1)
+                return False
         else:
             parser.print_usage()
-            sys.exit(1)
+            return False
 
     parser.print_usage()
-    sys.exit(1)
+    return False
 
 
 if __name__ == '__main__':
     setup_logging()
 
     try:
-        main()
+        sys.exit(0 if main() == True else 1)
     except Exception as e:
         logger.exception(f"Global exception handler: '{e}'")
         sys.exit(1)
