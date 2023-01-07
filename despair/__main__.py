@@ -67,8 +67,11 @@ def main() -> bool:
         plot.coeff(args.radius)
         return True
     elif args.plot == 'response':
-        plot.response_feature_image(args.radius)
-        return True
+        if not args.reference is None:
+            return plot.response_image(args.reference, args.radius, args.target_level)
+        else:
+            plot.response_feature_image(args.radius)
+            return True
     elif args.plot == 'shift':
         if not args.reference is None and not args.shift_mode is None:
             return plot.shift(

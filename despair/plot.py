@@ -69,6 +69,29 @@ def response_feature_image(radius: float) -> None:
     __response(image, radius)
 
 
+def response_image(reference: pathlib.Path, radius: float, target_level: int) -> bool:
+    logger.debug(
+        f'response img: reference={reference}, radius={radius} target_level={target_level}')
+
+    # Setting stuff up.
+    ref_img = image.read_grayscale(reference)
+    if ref_img is None:
+        return False
+
+    max_levels = util.max_levels(ref_img.shape)
+    if max_levels < target_level:
+        logger.error(
+            f'Target level={target_level} is greater than available max level={max_levels}')
+        return False
+
+    ref_pyramid = image.scale_pyramid(ref_img, target_level)
+    ref_pyr_img = ref_pyramid[-1]
+
+    __response(ref_pyr_img, radius)
+
+    return True
+
+
 def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     """
     Plot a shifted query image using reference image, mode and scale.
