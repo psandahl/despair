@@ -67,7 +67,7 @@ def main() -> None:
         plot.coeff(args.radius)
         sys.exit(0)
     elif args.plot == 'response':
-        plot.response(args.radius)
+        plot.response_feature_image(args.radius)
         sys.exit(0)
     elif args.plot == 'shift':
         if not args.reference is None and not args.shift_mode is None:

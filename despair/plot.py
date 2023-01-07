@@ -53,65 +53,20 @@ def coeff(r: float) -> None:
     plt.show()
 
 
-def response(r: float) -> None:
+def response_feature_image(radius: float) -> None:
     """
-    Plot the filter response using the given radius.
+    Plot the filter response for the feature image.
 
-    Parameters:
-        r: Radius of the filter.
+    Parameters:        
+        radius: Radius of the filter.
     """
-    assert r > 0
+    assert radius > 0
 
-    logger.debug(f'response: radius={r}')
+    logger.debug(f'response feature image: radius={radius}')
 
-    # Generate the feature image, and from that extract the feature signal.
     image = tutil.feature_image(blur=True)
-    signal = image[0, :]
 
-    x = np.arange(len(signal), dtype=np.float64)
-
-    fig = plt.figure(figsize=(8, 7))
-
-    # Visualize the feature image.
-    ax1 = fig.add_subplot(5, 1, 1)
-    ax1.imshow(image[:10, :], vmin=0.0, vmax=1.0, cmap='gray')
-    ax1.set_title('Feature Image')
-
-    # Visualize the feature signal.
-    ax2 = fig.add_subplot(5, 1, 2)
-    ax2.grid()
-    ax2.plot(x, signal, color='#000000')
-    ax2.set_title('Feature Signal')
-    ax2.set_xlim(left=0.0, right=len(signal) - 1)
-
-    coeff = filter.coeff(r)
-    resp = filter.convolve(signal, coeff)
-
-    # The raw, complex, response.
-    ax3 = fig.add_subplot(5, 1, 3)
-    ax3.plot(x, resp.real, color='#0000ff')
-    ax3.plot(x, resp.imag, color='#00ff00')
-    ax3.grid()
-    ax3.set_title('complex response')
-    ax3.set_xlim(left=0.0, right=len(signal) - 1)
-
-    # The magnitude of the response.
-    ax4 = fig.add_subplot(5, 1, 4)
-    ax4.plot(x, np.abs(resp), color='#ff0000')
-    ax4.grid()
-    ax4.set_title('magnitude')
-    ax4.set_xlim(left=0.0, right=len(signal) - 1)
-
-    # The phase of the response.
-    ax5 = fig.add_subplot(5, 1, 5)
-    ax5.plot(x, np.angle(resp), color='#ff00ff')
-    ax5.grid()
-    ax5.set_title('phase angle')
-    ax5.set_xlim(left=0.0, right=len(signal) - 1)
-
-    fig.suptitle(f'Filter response using radius={r}')
-    fig.tight_layout()
-    plt.show()
+    __response(image, radius)
 
 
 def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
@@ -357,5 +312,63 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, radius: float) -> Non
     ax_disp.set_title('Disparity')
 
     fig.suptitle(f'Disparity plots radius={radius}')
+    fig.tight_layout()
+    plt.show()
+
+
+def __response(image: np.ndarray, radius: float) -> None:
+    """
+    Plot the filter response using the given radius.
+
+    Parameters:
+        image: Image to get the plot for.
+        radius: Radius of the filter.
+    """
+    rows, cols = image.shape
+
+    # Take the middle row.
+    middle = rows // 2
+    signal = image[middle, :]
+
+    x = np.arange(cols, dtype=np.float64)
+
+    fig = plt.figure(figsize=(8, 7))
+    ax1 = fig.add_subplot(5, 1, 1)
+    ax1.imshow(image[middle-5:middle+5, :], vmin=0.0, vmax=1.0, cmap='gray')
+    ax1.set_title('Image section')
+
+    # Visualize the feature signal.
+    ax2 = fig.add_subplot(5, 1, 2)
+    ax2.grid()
+    ax2.plot(x, signal, color='#000000')
+    ax2.set_title('Signal (mid row)')
+    ax2.set_xlim(left=0.0, right=len(signal) - 1)
+
+    coeff = filter.coeff(radius)
+    resp = filter.convolve(signal, coeff)
+
+    # The raw, complex, response.
+    ax3 = fig.add_subplot(5, 1, 3)
+    ax3.plot(x, resp.real, color='#0000ff')
+    ax3.plot(x, resp.imag, color='#00ff00')
+    ax3.grid()
+    ax3.set_title('complex response')
+    ax3.set_xlim(left=0.0, right=len(signal) - 1)
+
+    # The magnitude of the response.
+    ax4 = fig.add_subplot(5, 1, 4)
+    ax4.plot(x, np.abs(resp), color='#ff0000')
+    ax4.grid()
+    ax4.set_title('magnitude')
+    ax4.set_xlim(left=0.0, right=len(signal) - 1)
+
+    # The phase of the response.
+    ax5 = fig.add_subplot(5, 1, 5)
+    ax5.plot(x, np.angle(resp), color='#ff00ff')
+    ax5.grid()
+    ax5.set_title('phase angle')
+    ax5.set_xlim(left=0.0, right=len(signal) - 1)
+
+    fig.suptitle(f'Filter response using radius={radius}')
     fig.tight_layout()
     plt.show()
