@@ -164,6 +164,7 @@ def phase_disparity(phase_difference: np.ndarray, frequency: np.ndarray, confide
     for y, x in np.ndindex(phase_difference.shape):
         if confidence[y, x] > confidence_threshold:
             disp_value = cmath.phase(phase_difference[y, x]) / frequency[y, x]
-            disparity[y, x] = disp_value if disp_value < disparity_threshold else 0.0
+            disparity[y, x] = disp_value if abs(
+                disp_value) < disparity_threshold else 0.0
 
     return disparity
