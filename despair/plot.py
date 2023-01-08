@@ -242,11 +242,15 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
 
     ref_pyramid = image.scale_pyramid(ref_img, target_level)
     qry_pyramid = image.scale_pyramid(qry_img, target_level)
+    shift_pyramid = image.scale_pyramid(shift_img, target_level)
 
     ref_pyr_img = ref_pyramid[-1]
     qry_pyr_img = qry_pyramid[-1]
 
-    __image_pair(ref_pyr_img, qry_pyr_img, radius)
+    # The shift image must be scaled to be fit as ground truth.
+    shift_pyr_img = shift_pyramid[-1] / math.pow(2.0, target_level)
+
+    __image_pair(ref_pyr_img, qry_pyr_img, shift_pyr_img, radius)
 
     return True
 
@@ -280,12 +284,12 @@ def disparity_pair(reference: pathlib.Path, query: pathlib.Path, radius: float, 
     ref_pyr_img = ref_pyramid[-1]
     qry_pyr_img = qry_pyramid[-1]
 
-    __image_pair(ref_pyr_img, qry_pyr_img, radius)
+    __image_pair(ref_pyr_img, qry_pyr_img, None, radius)
 
     return True
 
 
-def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, radius: float) -> None:
+def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray, radius: float) -> None:
     # Run the disparity computations.
     coeff = filter.coeff(radius)
 
@@ -300,39 +304,63 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, radius: float) -> Non
 
     fig = plt.figure(figsize=(8, 6))
 
+    fig_rows = 4 if not shift_img is None else 3
+
     # Visualize reference and query images.
-    ax_ref = fig.add_subplot(3, 2, 1)
+    ax_ref = fig.add_subplot(fig_rows, 2, 1)
     ax_ref.imshow(ref_img, cmap='gray', vmin=0.0, vmax=1.0)
     ax_ref.grid()
     ax_ref.set_title('Reference image')
 
-    ax_qry = fig.add_subplot(3, 2, 2)
+    ax_qry = fig.add_subplot(fig_rows, 2, 2)
     ax_qry.imshow(qry_img, cmap='gray', vmin=0.0, vmax=1.0)
     ax_qry.grid()
     ax_qry.set_title('Query image')
 
     # Visualize response magnitudes.
-    ax_ref_mag = fig.add_subplot(3, 2, 3)
+    ax_ref_mag = fig.add_subplot(fig_rows, 2, 3)
     ax_ref_mag.imshow(np.abs(ref_resp), cmap='gray', vmin=0.0, vmax=1.0)
     ax_ref_mag.grid()
     ax_ref_mag.set_title('Reference response magnitude')
 
-    ax_qry_mag = fig.add_subplot(3, 2, 4)
+    ax_qry_mag = fig.add_subplot(fig_rows, 2, 4)
     ax_qry_mag.imshow(np.abs(qry_resp), cmap='gray', vmin=0.0, vmax=1.0)
     ax_qry_mag.grid()
     ax_qry_mag.set_title('Query response magnitude')
 
     # Visualize confidence and disparity.
-    ax_conf = fig.add_subplot(3, 2, 5)
+    ax_conf = fig.add_subplot(fig_rows, 2, 5)
     ax_conf.imshow(confidence, cmap='gray', vmin=0.0, vmax=1.0)
     ax_conf.grid()
     ax_conf.set_title('Confidence')
 
-    ax_disp = fig.add_subplot(3, 2, 6)
+    ax_disp = fig.add_subplot(fig_rows, 2, 6)
     ax_disp.imshow(phase_disparity, cmap='gray', vmin=np.min(
         phase_disparity), vmax=np.max(phase_disparity))
     ax_disp.grid()
     ax_disp.set_title('Disparity')
+
+    if not shift_img is None:
+        # Given the ground thruth shift an error can be computed for
+        # the disparity. If everything is perfect adding the disparity
+        # to the shift should take out each other and give zero.
+        conf_thres = 0.2
+
+        disp_error = np.where(
+            confidence > conf_thres, np.abs(shift_img + phase_disparity), 0.0)
+
+        num = np.count_nonzero(confidence > conf_thres)
+        min_err = np.min(disp_error)
+        max_err = np.max(disp_error)
+        avg_err = np.mean(disp_error)
+
+        ax_shift = fig.add_subplot(fig_rows, 2, 7)
+        ax_shift.imshow(disp_error, cmap='jet', vmin=np.min(
+            disp_error), vmax=np.max(disp_error))
+
+        ax_shift.grid()
+        ax_shift.set_title(
+            f'abs(err): measures={num}, min={min_err:.2f}, max={max_err:.2f} avg={avg_err:.2f}')
 
     fig.suptitle(f'Disparity plots radius={radius}')
     fig.tight_layout()
