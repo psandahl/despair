@@ -57,6 +57,13 @@ def convolve(data: np.ndarray, coeff: np.ndarray) -> np.ndarray:
     assert len(data) >= len(coeff)
 
     response = signal.convolve(data, coeff, mode='same')
+
+    # The signal is padded with zeros at the edges, which can produce a sharp edge.
+    # Just zero a few edge pixels in the response to only have valid responses.
+    radius = (len(coeff) - 1) // 2
+    response[:radius] = 0.0
+    response[-radius:] = 0.0
+
     max_magnitude = np.max(np.abs(response))
 
     if max_magnitude > __eps:
