@@ -46,6 +46,6 @@ def max_levels(shape: tuple[int, int]) -> int:
     threshold = math.log2(16)
     levels = math.floor(math.log2(cols))
     if levels > threshold:
-        return levels - threshold
+        return int(levels - threshold)
     else:
         return 0

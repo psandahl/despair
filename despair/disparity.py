@@ -11,10 +11,11 @@ import despair.util as util
 logger = logging.getLogger(__name__)
 
 
-def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: bool = True):
+def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: int = 0) -> list:
     """
     Compute the disparity for the image pair.
     """
+    assert refine >= 0 and refine < 5
     assert isinstance(reference, np.ndarray)
     assert len(reference.shape) == 2
     assert reference.dtype == np.float64
@@ -25,17 +26,56 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: bool 
 
     # Prepare stuff before main algorithm loop.
     coeff = filter.coeff(radius)
-    pyr_levels = util.max_levels(reference.shape)
-    ref_pyramid = image.scale_pyramid(reference, pyr_levels)
-    qry_pyramid = image.scale_pyramid(query, pyr_levels)
+    max_pyr_level = util.max_levels(reference.shape)
+    ref_pyramid = image.scale_pyramid(reference, max_pyr_level)
+    qry_pyramid = image.scale_pyramid(query, max_pyr_level)
 
-    conf_accum = None
-    disp_accum = None
+    conf_accum = image.black_grayscale(ref_pyramid[-1].shape)
+    disp_accum = image.black_grayscale(ref_pyramid[-1].shape)
+
+    assert len(ref_pyramid) == max_pyr_level + 1
 
     logger.info(
-        f'compute: input image size (w, h)={reference.shape[::-1]}, pyr levels={pyr_levels}, coarsest image size={ref_pyramid[-1].shape[::-1]}')
+        f'compute: input image size (w, h)={reference.shape[::-1]}, max pyr level={max_pyr_level}, coarsest image size={ref_pyramid[-1].shape[::-1]}')
     logger.info(
         f'compute: filter radius={radius} disparity refine each level={refine}')
+
+    # Main loop, travel from most coarse level to the finest.
+    result = list()
+    for level in range(max_pyr_level, -1, -1):
+        ref_img = ref_pyramid[level]
+        qry_img = qry_pyramid[level]
+
+        logger.info(f'level={level} image size (w, h)={ref_img.shape[::-1]}')
+
+        if ref_img.shape != conf_accum.shape:
+            logger.info(
+                f'resize accumulators to size (w, h)={ref_img.shape[::-1]}')
+            conf_accum = image.resize(conf_accum, ref_img.shape)
+            disp_accum = image.resize(disp_accum * 2.0, ref_img.shape)
+
+        disp = None
+        iterations = 1 + refine
+        for iteration in range(iterations):
+            logger.info(f'iteration={iteration + 1} of {iterations}')
+
+            # Shift the query image using the accumulated disparity.
+            shft_qry_img = image.horizontal_shift(qry_img, disp_accum)
+            disp = compute_pair(ref_img, shft_qry_img, coeff)
+
+            conf_accum += disp['confidence_splat']
+            disp_accum += disp['disparity_splat']
+
+            logger.info(
+                f'disp_accum: min={np.min(disp_accum):.2f}, max={np.max(disp_accum):.2f}, avg={np.mean(disp_accum):.2f}')
+
+        # Only insert the refined instance for the level.
+        result.insert(0, disp)
+
+    logger.info('compute: done')
+
+    # Return the result.
+    return result
 
 
 def compute_pair(ref_img: np.ndarray, qry_img: np.ndarray, coeff: np.ndarray) -> dict:
@@ -57,12 +97,10 @@ def compute_pair(ref_img: np.ndarray, qry_img: np.ndarray, coeff: np.ndarray) ->
     phase_diff = phase_difference(ref_resp, qry_resp)
     disp = phase_disparity(phase_diff, freq, conf)
     conf_splat, disp_splat = splat(conf, disp)
-    shifted_qry = image.horizontal_shift(qry_img, disp_splat)
 
     return {
         'reference': ref_img,
         'query': qry_img,
-        'shifted_query': shifted_qry,
         'reference_response': ref_resp,
         'query_response': qry_resp,
         'frequency': freq,
