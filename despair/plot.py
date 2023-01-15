@@ -301,10 +301,12 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
     phase_difference = disparity.phase_difference(ref_resp, qry_resp)
     phase_disparity = disparity.phase_disparity(
         phase_difference, frequency, confidence)
+    confidence_sc, disparity_sc = disparity.spatial_consistency(
+        confidence, phase_disparity)
 
     fig = plt.figure(figsize=(8, 6))
 
-    fig_rows = 4 if not shift_img is None else 3
+    fig_rows = 5 if not shift_img is None else 4
 
     # Visualize reference and query images.
     ax_ref = fig.add_subplot(fig_rows, 2, 1)
@@ -328,17 +330,29 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
     ax_qry_mag.grid()
     ax_qry_mag.set_title('Query response magnitude')
 
-    # Visualize confidence and disparity.
+    # Visualize raw confidence and disparity.
     ax_conf = fig.add_subplot(fig_rows, 2, 5)
     ax_conf.imshow(confidence, cmap='gray', vmin=0.0, vmax=1.0)
     ax_conf.grid()
-    ax_conf.set_title('Confidence')
+    ax_conf.set_title('Confidence (raw)')
 
     ax_disp = fig.add_subplot(fig_rows, 2, 6)
     ax_disp.imshow(phase_disparity, cmap='gray', vmin=np.min(
         phase_disparity), vmax=np.max(phase_disparity))
     ax_disp.grid()
-    ax_disp.set_title('Disparity')
+    ax_disp.set_title('Disparity (raw)')
+
+    # Visualize confidence and disparity after spatial consistency.
+    ax_conf_sc = fig.add_subplot(fig_rows, 2, 7)
+    ax_conf_sc.imshow(confidence_sc, cmap='gray', vmin=0.0, vmax=1.0)
+    ax_conf_sc.grid()
+    ax_conf_sc.set_title('Confidence (spat)')
+
+    ax_disp_sc = fig.add_subplot(fig_rows, 2, 8)
+    ax_disp_sc.imshow(disparity_sc, cmap='gray', vmin=np.min(
+        disparity_sc), vmax=np.max(disparity_sc))
+    ax_disp_sc.grid()
+    ax_disp_sc.set_title('Disparity (spat)')
 
     if not shift_img is None:
         # Given the ground thruth shift an error can be computed for
@@ -354,7 +368,7 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
         max_err = np.max(disp_error)
         avg_err = np.mean(disp_error)
 
-        ax_shift = fig.add_subplot(fig_rows, 2, 7)
+        ax_shift = fig.add_subplot(fig_rows, 2, 9)
         ax_shift.imshow(disp_error, cmap='jet', vmin=np.min(
             disp_error), vmax=np.max(disp_error))
 

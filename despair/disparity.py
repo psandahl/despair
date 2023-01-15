@@ -2,6 +2,8 @@ import cmath
 import logging
 import numpy as np
 
+from scipy import ndimage
+
 import despair.filter as filter
 
 logger = logging.getLogger(__name__)
@@ -168,3 +170,37 @@ def phase_disparity(phase_difference: np.ndarray, frequency: np.ndarray, confide
                 disp_value) < disparity_threshold else 0.0
 
     return disparity
+
+
+def spatial_consistency(confidence: np.ndarray, disparity: np.ndarray):
+    """
+    Compute spatial consistency for confidence and disparity, by spreading values
+    onto weak regions without.
+
+    Parameters:
+        confidence: The confidence image.
+        disparity: The disparity image.
+
+    Returns:
+        Tuple (updated confidence, updated disparity).
+    """
+    assert isinstance(confidence, np.ndarray)
+    assert len(confidence.shape) == 2
+    assert confidence.dtype == np.float64
+    assert isinstance(disparity, np.ndarray)
+    assert len(disparity.shape) == 2
+    assert disparity.dtype == np.float64
+    assert confidence.shape == disparity.shape
+
+    sigma = 1.0
+    m = ndimage.gaussian_filter(
+        confidence, sigma=sigma, mode='constant', cval=0.0)
+    v = ndimage.gaussian_filter(
+        confidence * disparity, sigma=sigma, mode='constant', cval=0.0
+    )
+
+    min_conf = 0.1
+    for y, x in np.ndindex(v.shape):
+        v[y, x] = v[y, x] / max(min_conf, m[y, x])
+
+    return m, v
