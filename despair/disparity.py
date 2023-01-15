@@ -38,6 +38,41 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: bool 
         f'compute: filter radius={radius} disparity refine each level={refine}')
 
 
+def compute_pair(ref_img: np.ndarray, qry_img: np.ndarray, coeff: np.ndarray) -> dict:
+    assert isinstance(ref_img, np.ndarray)
+    assert len(ref_img.shape) == 2
+    assert ref_img.dtype == np.float64
+    assert isinstance(qry_img, np.ndarray)
+    assert len(qry_img.shape) == 2
+    assert qry_img.dtype == np.float64
+    assert ref_img.dtype == qry_img.dtype
+    assert isinstance(coeff, np.ndarray)
+    assert len(coeff.shape) == 1
+    assert coeff.dtype == np.complex128
+
+    ref_resp = filter_response(coeff, ref_img)
+    qry_resp = filter_response(coeff, qry_img)
+    freq = local_frequency(ref_resp, qry_resp)
+    conf = confidence(ref_resp, qry_resp, freq)
+    phase_diff = phase_difference(ref_resp, qry_resp)
+    disp = phase_disparity(phase_diff, freq, conf)
+    conf_splat, disp_splat = splat(conf, disp)
+    shifted_qry = image.horizontal_shift(qry_img, disp_splat)
+
+    return {
+        'reference': ref_img,
+        'query': qry_img,
+        'shifted_query': shifted_qry,
+        'reference_response': ref_resp,
+        'query_response': qry_resp,
+        'frequency': freq,
+        'confidence': conf,
+        'disparity': disp,
+        'confidence_splat': conf_splat,
+        'disparity_splat': disp_splat
+    }
+
+
 def filter_response(coeff: np.ndarray, img: np.ndarray) -> np.ndarray:
     """
     Compute the complex filter response of an image.
@@ -201,7 +236,7 @@ def phase_disparity(phase_difference: np.ndarray, frequency: np.ndarray, confide
     return disparity
 
 
-def spatial_consistency(confidence: np.ndarray, disparity: np.ndarray):
+def splat(confidence: np.ndarray, disparity: np.ndarray):
     """
     Compute spatial consistency for confidence and disparity, by spreading values
     onto weak regions without.

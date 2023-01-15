@@ -149,10 +149,10 @@ def disparity_feature_image(radius: int, scale: float) -> None:
     reference_signal = reference_img[0, :]
     x = np.arange(len(reference_signal), dtype=np.float64)
 
-    fig = plt.figure(figsize=(8, 6))
+    fig = plt.figure(figsize=(8, 8))
 
     # Visualize the reference signal.
-    ax_ref = fig.add_subplot(5, 1, 1)
+    ax_ref = fig.add_subplot(7, 1, 1)
     ax_ref.grid()
     ax_ref.plot(x, reference_signal, color='#000000')
     ax_ref.set_title('Reference signal')
@@ -160,7 +160,7 @@ def disparity_feature_image(radius: int, scale: float) -> None:
 
     # Visualize the query signal.
     query_signal = query_img[0, :]
-    ax_qry = fig.add_subplot(5, 1, 2)
+    ax_qry = fig.add_subplot(7, 1, 2)
     ax_qry.grid()
     ax_qry.plot(x, query_signal, color='#000000')
     ax_qry.set_title(f'Query signal with disparity={scale}')
@@ -170,18 +170,34 @@ def disparity_feature_image(radius: int, scale: float) -> None:
     coeff = filter.coeff(radius)
 
     # Run the disparity computations.
-    ref_resp = disparity.filter_response(coeff, reference_img)
-    qry_resp = disparity.filter_response(coeff, query_img)
+    disp = disparity.compute_pair(reference_img, query_img, coeff)
 
-    frequency = disparity.local_frequency(ref_resp, qry_resp)
-    confidence = disparity.confidence(ref_resp, qry_resp, frequency)
-    phase_difference = disparity.phase_difference(ref_resp, qry_resp)
-    phase_disparity = disparity.phase_disparity(
-        phase_difference, frequency, confidence)
+    # Fetch the data.
+    ref_resp = disp['reference_response']
+    qry_resp = disp['query_response']
+    frequency = disp['frequency']
+    confidence = disp['confidence']
+    phase_disparity = disp['disparity']
+
+    # Visualize the reference magnitude.
+    ref_resp_signal = ref_resp[0, :]
+    ax_ref_mag = fig.add_subplot(7, 1, 3)
+    ax_ref_mag.grid()
+    ax_ref_mag.plot(x, np.abs(ref_resp_signal), color='#00ff00')
+    ax_ref_mag.set_title('Reference magnitude')
+    ax_ref_mag.set_xlim(left=0.0, right=len(ref_resp_signal) - 1)
+
+    # Visualize the query magnitude.
+    qry_resp_signal = qry_resp[0, :]
+    ax_qry_mag = fig.add_subplot(7, 1, 4)
+    ax_qry_mag.grid()
+    ax_qry_mag.plot(x, np.abs(qry_resp_signal), color='#00ff00')
+    ax_qry_mag.set_title('Query magnitude')
+    ax_qry_mag.set_xlim(left=0.0, right=len(qry_resp_signal) - 1)
 
     # Visualize the local frequency.
     frequency_signal = frequency[0, :]
-    ax_frq = fig.add_subplot(5, 1, 3)
+    ax_frq = fig.add_subplot(7, 1, 5)
     ax_frq.grid()
     ax_frq.plot(x, frequency_signal, color='#ff0000')
     ax_frq.set_title('Local frequency')
@@ -189,7 +205,7 @@ def disparity_feature_image(radius: int, scale: float) -> None:
 
     # Visualize the confidence.
     confidence_signal = confidence[0, :]
-    ax_conf = fig.add_subplot(5, 1, 4)
+    ax_conf = fig.add_subplot(7, 1, 6)
     ax_conf.grid()
     ax_conf.plot(x, confidence_signal, color='#ffff00')
     ax_conf.set_title('Confidence')
@@ -197,7 +213,7 @@ def disparity_feature_image(radius: int, scale: float) -> None:
 
     # Visualize the disparity.
     disparity_signal = phase_disparity[0, :]
-    ax_disp = fig.add_subplot(5, 1, 5)
+    ax_disp = fig.add_subplot(7, 1, 7)
     ax_disp.grid()
     ax_disp.plot(x, disparity_signal, color='#0000ff')
     ax_disp.set_title('Disparity')
@@ -314,17 +330,15 @@ def disparity_multi(reference: pathlib.Path, query: pathlib.Path, radius: int) -
 def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray, radius: int) -> None:
     # Run the disparity computations.
     coeff = filter.coeff(radius)
+    disp = disparity.compute_pair(ref_img, qry_img, coeff)
 
-    ref_resp = disparity.filter_response(coeff, ref_img)
-    qry_resp = disparity.filter_response(coeff, qry_img)
-
-    frequency = disparity.local_frequency(ref_resp, qry_resp)
-    confidence = disparity.confidence(ref_resp, qry_resp, frequency)
-    phase_difference = disparity.phase_difference(ref_resp, qry_resp)
-    phase_disparity = disparity.phase_disparity(
-        phase_difference, frequency, confidence)
-    confidence_sc, disparity_sc = disparity.spatial_consistency(
-        confidence, phase_disparity)
+    # Fetch the data.
+    ref_resp = disp['reference_response']
+    qry_resp = disp['query_response']
+    confidence = disp['confidence']
+    phase_disparity = disp['disparity']
+    confidence_splat = disp['confidence_splat']
+    disparity_splat = disp['disparity_splat']
 
     fig = plt.figure(figsize=(8, 6))
 
@@ -366,15 +380,15 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
 
     # Visualize confidence and disparity after spatial consistency.
     ax_conf_sc = fig.add_subplot(fig_rows, 2, 7)
-    ax_conf_sc.imshow(confidence_sc, cmap='gray', vmin=0.0, vmax=1.0)
+    ax_conf_sc.imshow(confidence_splat, cmap='gray', vmin=0.0, vmax=1.0)
     ax_conf_sc.grid()
-    ax_conf_sc.set_title('Confidence (spat)')
+    ax_conf_sc.set_title('Confidence (splat)')
 
     ax_disp_sc = fig.add_subplot(fig_rows, 2, 8)
-    ax_disp_sc.imshow(disparity_sc, cmap='gray', vmin=np.min(
-        disparity_sc), vmax=np.max(disparity_sc))
+    ax_disp_sc.imshow(disparity_splat, cmap='gray', vmin=np.min(
+        disparity_splat), vmax=np.max(disparity_splat))
     ax_disp_sc.grid()
-    ax_disp_sc.set_title('Disparity (spat)')
+    ax_disp_sc.set_title('Disparity (splat)')
 
     if not shift_img is None:
         # Given the ground thruth shift an error can be computed for
