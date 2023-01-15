@@ -11,7 +11,8 @@ import despair.util as util
 logger = logging.getLogger(__name__)
 
 
-def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: int = 0) -> list:
+def compute(reference: np.ndarray, query: np.ndarray,
+            radius: int, refine: int = 0) -> tuple[np.ndarray, np.ndarray, list]:
     """
     Compute the disparity for the image pair.
     """
@@ -75,7 +76,7 @@ def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: int =
     logger.info('compute: done')
 
     # Return the result.
-    return result
+    return conf_accum, disp_accum, result
 
 
 def compute_pair(ref_img: np.ndarray, qry_img: np.ndarray, coeff: np.ndarray) -> dict:
