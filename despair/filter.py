@@ -20,7 +20,7 @@ dark to light edge and -pi/2 for light to dark edge.
 __eps = np.finfo(np.float64).eps
 
 
-def coeff(r: float) -> np.ndarray:
+def coeff(radius: int) -> np.ndarray:
     """
     Compute a discrete, complex non-ring filter with the given radius.
 
@@ -30,14 +30,15 @@ def coeff(r: float) -> np.ndarray:
     Returns:
         The filter coefficients, in a complex numpy array.
     """
-    assert r > 0
+    assert isinstance(radius, int)
+    assert radius > 0
 
-    r2 = r * 2.0
+    r2 = radius * 2.0
 
-    x = np.arange(-r, r + 1, dtype=np.float64)
+    x = np.arange(-radius, radius + 1, dtype=np.float64)
     x_pi = x * np.pi
 
-    return util.cos2(x_pi / r2) * np.exp(-1j * (x_pi / r + np.sin(x_pi / r)))
+    return util.cos2(x_pi / r2) * np.exp(-1j * (x_pi / radius + np.sin(x_pi / radius)))
 
 
 def convolve(data: np.ndarray, coeff: np.ndarray) -> np.ndarray:

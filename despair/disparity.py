@@ -5,8 +5,37 @@ import numpy as np
 from scipy import ndimage
 
 import despair.filter as filter
+import despair.image as image
+import despair.util as util
 
 logger = logging.getLogger(__name__)
+
+
+def compute(reference: np.ndarray, query: np.ndarray, radius: int, refine: bool = True):
+    """
+    Compute the disparity for the image pair.
+    """
+    assert isinstance(reference, np.ndarray)
+    assert len(reference.shape) == 2
+    assert reference.dtype == np.float64
+    assert isinstance(query, np.ndarray)
+    assert len(query.shape) == 2
+    assert query.dtype == np.float64
+    assert reference.shape == query.shape
+
+    # Prepare stuff before main algorithm loop.
+    coeff = filter.coeff(radius)
+    pyr_levels = util.max_levels(reference.shape)
+    ref_pyramid = image.scale_pyramid(reference, pyr_levels)
+    qry_pyramid = image.scale_pyramid(query, pyr_levels)
+
+    conf_accum = None
+    disp_accum = None
+
+    logger.info(
+        f'compute: input image size (w, h)={reference.shape[::-1]}, pyr levels={pyr_levels}, coarsest image size={ref_pyramid[-1].shape[::-1]}')
+    logger.info(
+        f'compute: filter radius={radius} disparity refine each level={refine}')
 
 
 def filter_response(coeff: np.ndarray, img: np.ndarray) -> np.ndarray:

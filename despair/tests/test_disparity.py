@@ -19,7 +19,7 @@ class DisparityTest(unittest.TestCase):
         # Negative scale is selected to have a positive disparity (for peak counting).
         # Small disparity for stable testing.
         self.shift_scale = -1.07
-        self.radius = 7.0
+        self.radius = 7
 
         # Setup images.
         reference_img = tutil.feature_image(blur=False)  # No blur.

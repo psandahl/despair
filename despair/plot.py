@@ -13,7 +13,7 @@ import despair.tests.util as tutil
 logger = logging.getLogger(__name__)
 
 
-def coeff(r: float) -> None:
+def coeff(r: int) -> None:
     """
     Plot the filter coefficients.
 
@@ -53,7 +53,7 @@ def coeff(r: float) -> None:
     plt.show()
 
 
-def response_feature_image(radius: float) -> None:
+def response_feature_image(radius: int) -> None:
     """
     Plot the filter response for the feature image.
 
@@ -69,7 +69,7 @@ def response_feature_image(radius: float) -> None:
     __response(image, radius)
 
 
-def response_image(reference: pathlib.Path, radius: float, target_level: int) -> bool:
+def response_image(reference: pathlib.Path, radius: int, target_level: int) -> bool:
     logger.debug(
         f'response img: reference={reference}, radius={radius} target_level={target_level}')
 
@@ -135,7 +135,7 @@ def shift(reference: pathlib.Path, mode: str, scale: float) -> bool:
     return True
 
 
-def disparity_feature_image(radius: float, scale: float) -> None:
+def disparity_feature_image(radius: int, scale: float) -> None:
     """
     Plot disparity values for the feature image.
     """
@@ -209,7 +209,7 @@ def disparity_feature_image(radius: float, scale: float) -> None:
 
 
 def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: float,
-                     radius: float, target_level: int) -> bool:
+                     radius: int, target_level: int) -> bool:
     logger.debug(
         f'disparity single: reference={reference}, shift_mode={shift_mode}, shift_scale={shift_scale} radius={radius} target_level={target_level}')
 
@@ -255,7 +255,7 @@ def disparity_single(reference: pathlib.Path, shift_mode: str, shift_scale: floa
     return True
 
 
-def disparity_pair(reference: pathlib.Path, query: pathlib.Path, radius: float, target_level: int) -> bool:
+def disparity_pair(reference: pathlib.Path, query: pathlib.Path, radius: int, target_level: int) -> bool:
     logger.debug(
         f'disparity pair: reference={reference}, query={query} radius={radius} target_level={target_level}')
 
@@ -289,7 +289,29 @@ def disparity_pair(reference: pathlib.Path, query: pathlib.Path, radius: float, 
     return True
 
 
-def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray, radius: float) -> None:
+def disparity_multi(reference: pathlib.Path, query: pathlib.Path, radius: int) -> bool:
+    logger.debug(
+        f'disparity multi: reference={reference}, query={query} radius={radius}')
+
+    # Setting stuff up.
+    ref_img = image.read_grayscale(reference)
+    if ref_img is None:
+        return False
+
+    qry_img = image.read_grayscale(query)
+    if qry_img is None:
+        return False
+
+    if ref_img.shape != qry_img.shape:
+        logger.error('Reference and query does not have the same shape')
+        return False
+
+    disparity.compute(ref_img, qry_img, radius)
+
+    return True
+
+
+def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray, radius: int) -> None:
     # Run the disparity computations.
     coeff = filter.coeff(radius)
 
@@ -381,7 +403,7 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
     plt.show()
 
 
-def __response(image: np.ndarray, radius: float) -> None:
+def __response(image: np.ndarray, radius: int) -> None:
     """
     Plot the filter response using the given radius.
 

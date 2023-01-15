@@ -39,7 +39,7 @@ def main() -> bool:
                         help='set the effective log level (default: warning)')
     parser.add_argument('--plot', type=str, choices=['coeff', 'response', 'shift', 'disparity'],
                         help='plot the given function')
-    parser.add_argument('--disparity-mode', type=str, choices=['feature-image', 'single-gt', 'pair'],
+    parser.add_argument('--disparity-mode', type=str, choices=['feature-image', 'single-gt', 'pair', 'multi'],
                         help='run disparity in the given mode')
     parser.add_argument('--shift-mode', type=str, choices=['global', 'peak'],
                         help='shift mode for disparity ground truth')
@@ -94,6 +94,13 @@ def main() -> bool:
             if not args.reference is None and not args.query is None:
                 return plot.disparity_pair(
                     args.reference, args.query, args.radius, args.target_level)
+            else:
+                parser.print_usage()
+                return False
+        elif args.disparity_mode == 'multi':
+            if not args.reference is None and not args.query is None:
+                return plot.disparity_multi(
+                    args.reference, args.query, args.radius)
             else:
                 parser.print_usage()
                 return False
