@@ -344,7 +344,7 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
         # Given the ground thruth shift an error can be computed for
         # the disparity. If everything is perfect adding the disparity
         # to the shift should take out each other and give zero.
-        conf_thres = 0.2
+        conf_thres = 0.5
 
         disp_error = np.where(
             confidence > conf_thres, np.abs(shift_img + phase_disparity), 0.0)
@@ -360,7 +360,7 @@ def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray
 
         ax_shift.grid()
         ax_shift.set_title(
-            f'abs(err): measures={num}, min={min_err:.2f}, max={max_err:.2f} avg={avg_err:.2f}')
+            f'abs(err): meas={num}, min={min_err:.2f}, max={max_err:.2f} avg={avg_err:.2f}')
 
     fig.suptitle(f'Disparity plots radius={radius}')
     fig.tight_layout()
