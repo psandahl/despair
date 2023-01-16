@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def compute(reference: np.ndarray, query: np.ndarray,
-            radius: int, refine: int = 0) -> tuple[np.ndarray, np.ndarray, list]:
+            radius: int, refine: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, list]:
     """
     Compute the disparity for the image pair.
     """
@@ -42,7 +42,7 @@ def compute(reference: np.ndarray, query: np.ndarray,
         f'compute: filter radius={radius} disparity refine each level={refine}')
 
     # Main loop, travel from most coarse level to the finest.
-    result = list()
+    res_pyramid = list()
     for level in range(max_pyr_level, -1, -1):
         ref_img = ref_pyramid[level]
         qry_img = qry_pyramid[level]
@@ -71,12 +71,19 @@ def compute(reference: np.ndarray, query: np.ndarray,
                 f'disp_accum: min={np.min(disp_accum):.2f}, max={np.max(disp_accum):.2f}, avg={np.mean(disp_accum):.2f}')
 
         # Only insert the refined instance for the level.
-        result.insert(0, disp)
+        res_pyramid.insert(0, disp)
+
+    # Normalize the accumulated confidence.
+    conf_accum /= max(np.max(conf_accum), 0.000001)
+
+    # A final shift of the top level query image. Shall be close to
+    # the reference image.
+    shft_qry_img = image.horizontal_shift(query, disp_accum)
 
     logger.info('compute: done')
 
     # Return the result.
-    return conf_accum, disp_accum, result
+    return conf_accum, disp_accum, shft_qry_img, res_pyramid
 
 
 def compute_pair(ref_img: np.ndarray, qry_img: np.ndarray, coeff: np.ndarray) -> dict:

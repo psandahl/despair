@@ -322,9 +322,60 @@ def disparity_multi(reference: pathlib.Path, query: pathlib.Path, radius: int) -
         logger.error('Reference and query does not have the same shape')
         return False
 
-    disparity.compute(ref_img, qry_img, radius)
+    conf_accum, disp_accum, shft_qry_img, res_pyramid = disparity.compute(
+        ref_img, qry_img, radius, refine=0)
+    __image_multi(conf_accum, disp_accum, shft_qry_img, res_pyramid, qry_img)
 
     return True
+
+
+def __image_multi(conf_accum: np.ndarray, disp_accum: np.ndarray,
+                  shft_qry_img: np.ndarray, res_pyramid: dict,
+                  orig_qry_img: np.ndarray) -> None:
+    fig = plt.figure(figsize=(8, 6))
+
+    fig_rows = 2
+
+    ax_conf_accum = fig.add_subplot(fig_rows, 3, 1)
+    ax_conf_accum.imshow(conf_accum, cmap='gray',
+                         vmin=0.0, vmax=np.max(conf_accum))
+    ax_conf_accum.grid()
+    ax_conf_accum.set_title('Accumulated confidence')
+
+    ax_disp_accum = fig.add_subplot(fig_rows, 3, 2)
+    ax_disp_accum.imshow(disp_accum, cmap='gray',
+                         vmin=np.min(disp_accum), vmax=np.max(disp_accum))
+    ax_disp_accum.grid()
+    ax_disp_accum.set_title('Accumulated disparity (raw)')
+
+    disp_filt = np.where(conf_accum > 0.35, disp_accum, 0.0)
+    ax_disp_filt = fig.add_subplot(fig_rows, 3, 3)
+    ax_disp_filt.imshow(disp_filt, cmap='gray',
+                        vmin=np.min(disp_filt), vmax=np.max(disp_filt))
+    ax_disp_filt.grid()
+    ax_disp_filt.set_title('Accumulated disparity (filt)')
+
+    ax_ref = fig.add_subplot(fig_rows, 3, 4)
+    ax_ref.imshow(res_pyramid[0]['reference'], cmap='gray',
+                  vmin=0, vmax=1.0)
+    ax_ref.grid()
+    ax_ref.set_title('Reference image')
+
+    ax_qry = fig.add_subplot(fig_rows, 3, 5)
+    ax_qry.imshow(orig_qry_img, cmap='gray',
+                  vmin=0, vmax=1.0)
+    ax_qry.grid()
+    ax_qry.set_title('Original query image')
+
+    ax_shft_qry = fig.add_subplot(fig_rows, 3, 6)
+    ax_shft_qry.imshow(shft_qry_img, cmap='gray',
+                       vmin=0, vmax=1.0)
+    ax_shft_qry.grid()
+    ax_shft_qry.set_title('Shifted query image')
+
+    fig.suptitle('Multi level disparity')
+    fig.tight_layout()
+    plt.show()
 
 
 def __image_pair(ref_img: np.ndarray, qry_img: np.ndarray, shift_img: np.ndarray, radius: int) -> None:
