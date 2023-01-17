@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 def compute(reference: np.ndarray, query: np.ndarray,
-            radius: int, refine: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, list]:
+            radius: int, refine: int = 0,
+            final_splat: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, list]:
     """
     Compute the disparity for the image pair.
     """
@@ -72,6 +73,10 @@ def compute(reference: np.ndarray, query: np.ndarray,
 
         # Only insert the refined instance for the level.
         res_pyramid.insert(0, disp)
+
+    # Final splat.
+    if final_splat:
+        conf_accum, disp_accum = splat(conf_accum, disp_accum)
 
     # Normalize the accumulated confidence.
     conf_accum /= max(np.max(conf_accum), 0.000001)

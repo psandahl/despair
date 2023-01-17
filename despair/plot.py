@@ -323,7 +323,7 @@ def disparity_multi(reference: pathlib.Path, query: pathlib.Path, radius: int) -
         return False
 
     conf_accum, disp_accum, shft_qry_img, res_pyramid = disparity.compute(
-        ref_img, qry_img, radius, refine=0)
+        ref_img, qry_img, radius, refine=0, final_splat=True)
     __image_multi(conf_accum, disp_accum, shft_qry_img, res_pyramid, qry_img)
 
     return True
@@ -335,6 +335,9 @@ def __image_multi(conf_accum: np.ndarray, disp_accum: np.ndarray,
     fig = plt.figure(figsize=(8, 6))
 
     fig_rows = 2
+
+    # conf_mean = np.mean(conf_accum)
+    conf_thres = 0.5
 
     ax_conf_accum = fig.add_subplot(fig_rows, 3, 1)
     ax_conf_accum.imshow(conf_accum, cmap='gray',
@@ -348,12 +351,12 @@ def __image_multi(conf_accum: np.ndarray, disp_accum: np.ndarray,
     ax_disp_accum.grid()
     ax_disp_accum.set_title('Accumulated disparity (raw)')
 
-    disp_filt = np.where(conf_accum > 0.35, disp_accum, 0.0)
+    disp_filt = np.where(conf_accum > conf_thres, disp_accum, 0.0)
     ax_disp_filt = fig.add_subplot(fig_rows, 3, 3)
     ax_disp_filt.imshow(disp_filt, cmap='gray',
                         vmin=np.min(disp_filt), vmax=np.max(disp_filt))
     ax_disp_filt.grid()
-    ax_disp_filt.set_title('Accumulated disparity (filt)')
+    ax_disp_filt.set_title(f'Accumulated disparity (conf > {conf_thres:.2f})')
 
     ax_ref = fig.add_subplot(fig_rows, 3, 4)
     ax_ref.imshow(res_pyramid[0]['reference'], cmap='gray',
